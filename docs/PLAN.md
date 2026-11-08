@@ -48,14 +48,14 @@ Chaque version passe par une pull request et des tests automatiques.
 - En attendant l'accès Garmin : export de la séance en fichier `.FIT`, que l'athlète copie sur sa montre par câble USB.
 - Sauvegarde quotidienne chiffrée de la base (voir « Points d'attention »).
 
-### 0.3.0 : les échanges et les retours
+### 0.3.0 : les échanges et les retours (fait)
 
 - Fil de commentaires sur chaque séance, avec la mention « vu par le coach ».
 - Messagerie coach ↔ athlète, mise à jour en temps réel.
 - Séance faite : durée, distance, D+, ressenti (RPE de 1 à 10).
 - Douleur : où, et avec quelle intensité. C'est important pour les reprises après blessure.
 - E-mails : séance du lendemain pour l'athlète, nouveau retour ou message pour le coach.
-- **Pilote** : le coach et 2 ou 3 athlètes, en parallèle de Nolio.
+- **Pilote** : le coach et 2 ou 3 athlètes, en parallèle de Nolio (voir [PILOTE.md](PILOTE.md)).
 
 ### 0.4.0 : Garmin
 

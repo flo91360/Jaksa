@@ -1,10 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { useAthleteProfile, useMyCoaches } from '../../api/athletes.ts'
+import { isMissingRelation, useWorkoutActivity } from '../../api/exchanges.ts'
+import { useExchangeNames } from '../../api/names.ts'
 import { useUpcomingRaces, useWorkouts } from '../../api/planning.ts'
 import { useMyProfile } from '../../api/profile.ts'
 import { useUserId } from '../../auth/auth-context.ts'
 import { PriorityBadge } from '../../components/RaceEditor.tsx'
+import { WorkoutExchanges } from '../../components/exchanges/WorkoutExchanges.tsx'
+import { FEEDBACK_STATUS } from '../../domain/feedback.ts'
 import { Alert, Card, EmptyState, LoadingBlock, PageHeader } from '../../components/ui.tsx'
 import { FitExport, WorkoutView } from '../../components/workout/WorkoutView.tsx'
 import { KIND_STYLES } from '../../components/workout/kindStyles.ts'
@@ -25,6 +29,7 @@ export function TodayPage() {
   const [today] = useState(() => todayIso())
   const workouts = useWorkouts([athleteId], today, addDays(today, 7))
   const races = useUpcomingRaces(athleteId, today)
+  const names = useExchangeNames('athlete')
   const name = firstName(me.data?.full_name ?? '')
   const zones = profile.data?.zones ?? []
 
@@ -52,11 +57,16 @@ export function TodayPage() {
                     <h3 className="text-xl font-bold text-slate-900">{workout.title}</h3>
                     <WorkoutView workout={workout} zones={zones} />
                     <FitExport workout={workout} zones={zones} />
+                    <div className="border-t border-slate-100 pt-3">
+                      <WorkoutExchanges workout={workout} zones={zones} role="athlete" meId={athleteId} names={names} />
+                    </div>
                   </article>
                 ))}
               </div>
             )}
           </Card>
+
+          <RecentWorkouts athleteId={athleteId} today={today} />
 
           <Card title="Ta semaine">
             {workouts.isPending ? (
@@ -150,5 +160,55 @@ function UpcomingWorkout({ workout, zones }: { workout: Workout; zones: HrZone[]
         <FitExport workout={workout} zones={zones} />
       </div>
     </details>
+  )
+}
+
+/** Les 7 derniers jours : séances faites ou non, et celles qui attendent un retour. */
+function RecentWorkouts({ athleteId, today }: { athleteId: string; today: string }) {
+  const from = addDays(today, -7)
+  const to = addDays(today, -1)
+  const workouts = useWorkouts([athleteId], from, to)
+  const activity = useWorkoutActivity([athleteId], from, to)
+  if (isMissingRelation(activity.error) || !workouts.data || !activity.data) return null
+  const list = workouts.data.filter((w) => w.kind !== 'rest').reverse()
+  if (list.length === 0) return null
+  const missing = list.filter((w) => !activity.data.get(w.id)?.status).length
+  return (
+    <Card
+      title="Tes dernières séances"
+      description={missing > 0 ? `${missing} séance${missing > 1 ? 's' : ''} sans retour : ton coach aimerait savoir comment ça s’est passé.` : undefined}
+    >
+      <ul className="divide-y divide-slate-100">
+        {list.map((workout) => {
+          const a = activity.data.get(workout.id)
+          return (
+            <li key={workout.id}>
+              <Link to={`/seance/${workout.id}`} className="flex min-h-12 items-center gap-3 py-2 hover:bg-slate-50">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium text-slate-900">{workout.title}</span>
+                  <span className="block text-xs text-slate-500">{formatLongDay(workout.scheduled_on)}</span>
+                </span>
+                {a?.status ? (
+                  <span className="shrink-0 text-right text-xs">
+                    <span className="block font-semibold text-slate-700">
+                      {FEEDBACK_STATUS[a.status].icon} {FEEDBACK_STATUS[a.status].short}
+                      {a.rpe ? ` · RPE ${a.rpe}` : ''}
+                    </span>
+                    <span className={a.coach_seen_at ? 'text-emerald-700' : 'text-slate-400'}>
+                      {a.coach_seen_at ? '✓ Vu par le coach' : 'Pas encore vu'}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-900">
+                    Faire mon retour
+                  </span>
+                )}
+                {a && a.unread_comments > 0 && <span className="size-2 rounded-full bg-red-600" aria-label="nouveau commentaire" />}
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+    </Card>
   )
 }

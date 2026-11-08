@@ -373,3 +373,15 @@ export function TabLinks({ tabs }: { tabs: { to: string; label: string; end?: bo
     </nav>
   )
 }
+
+/** Pastille rouge du nombre de non-lus. */
+export function UnreadBadge({ count, className = '' }: { count: number; className?: string }) {
+  return (
+    <span
+      className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[11px] font-bold text-white ${className}`}
+    >
+      {count > 99 ? '99+' : count}
+      <span className="sr-only"> non lu{count > 1 ? 's' : ''}</span>
+    </span>
+  )
+}

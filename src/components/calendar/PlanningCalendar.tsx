@@ -10,9 +10,10 @@ import {
 import { groupByDate } from '../../domain/planning.ts'
 import { formatTotals, workoutTotals } from '../../domain/workouts.ts'
 import type { HrZone } from '../../domain/zones.ts'
-import type { Race, Workout } from '../../lib/database.types.ts'
+import type { Race, Workout, WorkoutActivity } from '../../lib/database.types.ts'
 import { firstName } from '../../lib/format.ts'
 import { PriorityBadge } from '../RaceEditor.tsx'
+import { ActivityBadges } from '../exchanges/ActivityBadges.tsx'
 import { KIND_STYLES } from '../workout/kindStyles.ts'
 
 export type CalendarAthlete = { id: string; name: string; zones: HrZone[] }
@@ -24,6 +25,8 @@ type Props = {
   athletes: CalendarAthlete[]
   workouts: Workout[]
   races: Race[]
+  /** Retours et commentaires, par séance (absent tant que la base n'est pas à jour). */
+  activity?: Map<string, WorkoutActivity>
   /** Vue « tous mes athlètes » : une ligne par athlète, noms affichés. */
   multi: boolean
   onOpenWorkout: (workout: Workout) => void
@@ -74,6 +77,7 @@ export function PlanningCalendar(props: Props) {
       key={workout.id}
       workout={workout}
       athlete={athletesById.get(workout.athlete_id)}
+      activity={props.activity?.get(workout.id)}
       compact={options.compact}
       showName={options.showName}
       onOpen={() => props.onOpenWorkout(workout)}
@@ -144,7 +148,7 @@ export function PlanningCalendar(props: Props) {
                         type="button"
                         onClick={() => props.onOpenWorkout(workout)}
                         aria-label={workout.title}
-                        className={`size-3 rounded-full ${KIND_STYLES[workout.kind].dot}`}
+                        className={`size-3 rounded-full ${KIND_STYLES[workout.kind].dot} ${props.activity?.get(workout.id)?.status ? 'ring-2 ring-emerald-300' : ''}`}
                       />
                     ))}
                   </div>
@@ -301,12 +305,14 @@ function AddButton({ label, onClick, className = '' }: { label: string; onClick:
 function WorkoutCard({
   workout,
   athlete,
+  activity,
   compact = false,
   showName = false,
   onOpen,
 }: {
   workout: Workout
   athlete?: CalendarAthlete
+  activity?: WorkoutActivity
   compact?: boolean
   showName?: boolean
   onOpen: () => void
@@ -330,6 +336,7 @@ function WorkoutCard({
       )}
       <span className={`block truncate font-medium text-slate-900 ${compact ? 'text-xs' : 'text-sm'}`}>{workout.title}</span>
       {totals && <span className={`block truncate text-slate-500 ${compact ? 'text-[11px]' : 'text-xs'}`}>{totals}</span>}
+      <ActivityBadges activity={activity} compact={compact} />
     </button>
   )
 }

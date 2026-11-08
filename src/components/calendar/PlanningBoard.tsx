@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
+import { useWorkoutActivity } from '../../api/exchanges.ts'
 import { useCreateWorkouts, useRaces, useUpdateWorkout, useWorkouts } from '../../api/planning.ts'
 import {
   type CalendarView,
@@ -45,6 +46,7 @@ export function PlanningBoard({ athletes, multi }: { athletes: AthleteOption[]; 
 
   const workouts = useWorkouts(ids, range.from, range.to)
   const races = useRaces(ids, range.from, range.to)
+  const activity = useWorkoutActivity(ids, range.from, range.to)
   const update = useUpdateWorkout()
   const create = useCreateWorkouts()
   const [editing, setEditing] = useState<Editing>(null)
@@ -146,6 +148,7 @@ export function PlanningBoard({ athletes, multi }: { athletes: AthleteOption[]; 
         athletes={athletes}
         workouts={list}
         races={races.data ?? []}
+        activity={activity.data}
         multi={multi}
         onOpenWorkout={(workout) => setEditing({ type: 'workout', workout })}
         onCreate={(athleteId, date) => setEditing({ type: 'new-workout', athleteId, date })}
@@ -155,7 +158,13 @@ export function PlanningBoard({ athletes, multi }: { athletes: AthleteOption[]; 
       />
 
       {editing?.type === 'workout' && (
-        <WorkoutEditor workout={editing.workout} athletes={athletes} existing={list} onClose={() => setEditing(null)} />
+        <WorkoutEditor
+          workout={editing.workout}
+          athletes={athletes}
+          existing={list}
+          activity={activity.data?.get(editing.workout.id)}
+          onClose={() => setEditing(null)}
+        />
       )}
       {editing?.type === 'new-workout' && (
         <WorkoutEditor

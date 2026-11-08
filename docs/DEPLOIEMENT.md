@@ -16,7 +16,8 @@ Compter environ une heure la première fois.
 2. Créer les tables et les règles de sécurité. Dans **SQL Editor** → **New query**, coller le contenu de chaque
    fichier de [`supabase/migrations/`](../supabase/migrations/), **dans l'ordre**, et faire **Run** à chaque fois :
    - `20261108120000_socle.sql` (0.1.0) ;
-   - `20261109090000_planification.sql` (0.2.0 : séances, séances types, courses).
+   - `20261109090000_planification.sql` (0.2.0 : séances, séances types, courses) ;
+   - `20261110090000_echanges.sql` (0.3.0 : retours de séance, commentaires, messagerie, e-mails).
    - Avec la ligne de commande, c'est équivalent : `npx supabase link --project-ref <ref>` puis `npx supabase db push`.
 3. Dans **Authentication** → **Sign In / Providers** → **Email** :
    - garder le fournisseur e-mail activé ;
@@ -77,6 +78,7 @@ Il faut appliquer les fichiers dans l'ordre, une seule fois chacun, et ne jamais
 |---|---|
 | 0.1.0 | `20261108120000_socle.sql` |
 | 0.2.0 | `20261109090000_planification.sql` |
+| 0.3.0 | `20261110090000_echanges.sql` |
 
 Pour passer de 0.1.0 à 0.2.0, il suffit donc de coller `20261109090000_planification.sql` dans le SQL Editor
 **avant** de fusionner la pull request (sinon le site déployé cherche des tables qui n'existent pas encore).
@@ -145,3 +147,25 @@ Vérifications avant de pousser :
 ```bash
 npm run check   # lint, types, tests (dont les règles de sécurité de la base), build
 ```
+
+## 7. E-mails automatiques (0.3.0)
+
+Une fois la migration `20261110090000_echanges.sql` appliquée, le site enregistre les e-mails à envoyer (séance du
+lendemain, nouveaux retours, commentaires et messages). Pour qu'ils partent vraiment, il faut les activer une fois
+(15 minutes) :
+
+1. Dans [Brevo](https://www.brevo.com) :
+   - **Senders, Domains & Dedicated IPs** → **Senders** : ajouter et valider l'adresse d'expédition (par exemple
+     celle du coach) ;
+   - **SMTP & API** → onglet **API Keys** → **Generate a new API key** : copier la clé (`xkeysib-…`). Ce n'est pas
+     la même que la clé SMTP de l'étape 1.5.
+2. Ouvrir [`supabase/emails.sql`](../supabase/emails.sql), copier tout son contenu dans le **SQL Editor** de Supabase
+   (**New query**), puis remplacer les trois valeurs entre crochets :
+   - `[CLE_API_BREVO]` : la clé copiée ;
+   - `[ADRESSE_EXPEDITEUR]` : l'adresse validée dans Brevo ;
+   - `[ADRESSE_DU_SITE]` : l'adresse du site, sans « / » final (ex. `https://rob1coach.fr`).
+3. **Run**. La requête ne doit être exécutée qu'**une fois**. Ne pas enregistrer la requête remplie (elle contient la clé).
+4. Pour vérifier le lendemain : **Integrations** → **Cron** → les deux tâches `rob1coach-…` et leurs dernières exécutions.
+
+Chacun peut couper les e-mails dans **Mon compte**. Les e-mails déjà lus sur le site ne sont pas envoyés, et ceux
+de plus de 24 heures sont abandonnés.
