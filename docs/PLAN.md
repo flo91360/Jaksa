@@ -59,6 +59,17 @@ Chaque version passe par une pull request et des tests automatiques.
 
 ### 0.4.0 : Garmin
 
+Étape préalable, possible tout de suite : un **test perso** avec le niveau Personal,
+sur le seul compte Garmin de Florian (voir « Garmin : le point bloquant ») :
+
+- import de ses activités (résumé JSON et fichier `.FIT` : FC, allure, D+, tours),
+  rattachées à la séance prévue le même jour ;
+- affichage de ces données dans le retour de séance ;
+- but : valider la lecture des `.FIT` et le rattachement aux séances, qui resteront
+  valables au niveau Starter. La récupération des données sera à refaire, car le
+  Starter envoie les données au site au lieu de les laisser lire à la demande ;
+- l'envoi des séances sur la montre ne peut pas être testé à ce niveau.
+
 À lancer dès que Garmin a donné son accord (voir ci-dessous) :
 
 - connexion du compte Garmin de chaque athlète ;
@@ -76,10 +87,15 @@ Le coach peut résilier Nolio à partir de cette version.
 ## Garmin : le point bloquant
 
 Garmin a rouvert son programme développeur le 21 octobre 2026, avec trois niveaux.
-Ces informations viennent de la presse et sont à confirmer sur
-[developer.garmin.com](https://developer.garmin.com/gc-developer-program/).
+Le contenu de chaque niveau a été vérifié le 8 novembre 2026 sur
+[developer.garmin.com](https://developer.garmin.com/gc-developer-program/overview/) ;
+les tarifs et plafonds viennent de la presse.
 
-- **Personal** : gratuit, mais limité à ses propres données. Il ne convient pas à un coach.
+- **Personal** : limité à ses propres données, en **lecture seule** (activités en JSON
+  et `.FIT`, santé). Pas de candidature : on récupère sa clé d'API personnelle et ses
+  jetons depuis son compte sur connect.garmin.com. Pas d'API Training, donc pas d'envoi
+  sur la montre. Il ne convient pas à un coach, mais il suffit pour le test perso de
+  la 0.4.0. Les jetons vont dans les secrets Supabase, jamais dans le code.
 - **Starter** : réservé aux entreprises. D'après la presse, il est gratuit et plafonné à environ 1 000 utilisateurs. Les données arrivent par envoi automatique de Garmin, sans l'historique. C'est le bon niveau pour Rob1Coach.
 - **Enterprise** : payant, avec un tarif négocié.
 
