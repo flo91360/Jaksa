@@ -1,5 +1,9 @@
 # Journal des versions
 
+## [0.5.3] - 2026-11-08
+
+- **Courbes** : après le premier kilomètre, l'échelle couvre de nouveau tout l'écart entre le min et le max de chaque courbe. Seules les valeurs de la mise en route peuvent sortir du cadre.
+
 ## [0.5.2] - 2026-11-08
 
 - **Courbes plus lisibles** : l'échelle de la FC, de l'allure, de la cadence et de la puissance ne tient plus compte du premier kilomètre (mise en route) ni des valeurs extrêmes. Le reste de la sortie se lit beaucoup plus finement ; les premières centaines de mètres peuvent sortir du cadre.

@@ -269,11 +269,12 @@ describe('échelle des graphiques', () => {
     expect(warmupEnd({ t, distance: null })).toBe(12)
   })
 
-  it("resserre l'échelle sur la sortie, sans la mise en route ni les pointes", () => {
-    const hr = [70, 90, 110, 130, ...Array.from({ length: 100 }, (_, i) => 155 + (i % 10)), 200]
-    expect(focusRange(hr, 4, 5, 20)).toEqual([150, 170])
+  it("cale l'échelle sur le min et le max après la mise en route", () => {
+    const hr = [70, 90, 110, 130, ...Array.from({ length: 100 }, (_, i) => 155 + (i % 10)), 182]
+    expect(focusRange(hr, 4, 5, 20)).toEqual([155, 185])
     // Sans la mise en route écartée, l'échelle descend jusqu'aux premières valeurs.
-    expect(focusRange(hr, 0, 5, 20)?.[0]).toBeLessThan(150)
+    expect(focusRange(hr, 0, 5, 20)).toEqual([70, 185])
+    expect(focusRange([120, null], 1, 5, 20)).toEqual([110, 130])
     expect(focusRange([null, null], 0, 5)).toBeNull()
   })
 })
