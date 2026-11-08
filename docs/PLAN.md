@@ -33,7 +33,7 @@ Chaque version passe par une pull request et des tests automatiques.
 - Zones FC calculées automatiquement (% FC max, % FC de réserve ou % FC seuil). Le coach y associe les allures qu'il en déduit. L'historique est conservé.
 - Site utilisable sur téléphone et ordinateur, installable sur l'écran d'accueil.
 
-### 0.2.0 : la planification
+### 0.2.0 : la planification (fait)
 
 - Calendrier à la semaine et au mois : par athlète, et en vue « tous mes athlètes ».
 - Glisser-déposer, copie d'une séance, duplication d'une semaine.
@@ -46,6 +46,7 @@ Chaque version passe par une pull request et des tests automatiques.
 - Courses et objectifs (priorité A/B/C) affichés dans le calendrier.
 - Côté athlète : « Ta séance du jour » et la semaine à venir.
 - En attendant l'accès Garmin : export de la séance en fichier `.FIT`, que l'athlète copie sur sa montre par câble USB.
+- Sauvegarde quotidienne chiffrée de la base (voir « Points d'attention »).
 
 ### 0.3.0 : les échanges et les retours
 
@@ -101,5 +102,5 @@ montrer les données d'un utilisateur à quelqu'un d'autre, coach compris.
   - un hébergement dans l'UE (projet Supabase en région Europe) ;
   - un accès limité à l'athlète et à son coach (règles RLS, testées automatiquement) ;
   - à prévoir : une page de confidentialité, l'export et la suppression du compte à la demande.
-- **Sauvegardes** : l'offre gratuite de Supabase n'en fait pas. Une sauvegarde quotidienne automatique est prévue en 0.2.0.
+- **Sauvegardes** : l'offre gratuite de Supabase n'en fait pas. Depuis la 0.2.0, une tâche GitHub fait une sauvegarde quotidienne chiffrée, gardée 30 jours. Elle reste à activer en ajoutant deux secrets (voir `docs/DEPLOIEMENT.md`, étape 5).
 - **Reprise de l'existant** : vérifier ce que Nolio permet d'exporter (séances types, historique).

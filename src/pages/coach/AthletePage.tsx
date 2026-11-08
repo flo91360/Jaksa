@@ -9,13 +9,19 @@ import {
 } from '../../api/athletes.ts'
 import { useUserId } from '../../auth/auth-context.ts'
 import { AthleteInfoForm, PhysiologyForm, PrivateNoteForm } from '../../components/AthleteForms.tsx'
+import { useUpcomingRaces } from '../../api/planning.ts'
+import { RaceEditor, RaceList } from '../../components/RaceEditor.tsx'
 import { ZoneEditor } from '../../components/ZoneEditor.tsx'
-import { Alert, Button, Card, EmptyState, LoadingBlock, PageHeader } from '../../components/ui.tsx'
+import { PlanningBoard } from '../../components/calendar/PlanningBoard.tsx'
+import { Alert, Button, Card, EmptyState, LoadingBlock, PageHeader, TabLinks } from '../../components/ui.tsx'
+import { todayIso } from '../../domain/calendar.ts'
+import type { AthleteProfile, CoachLink, Race } from '../../lib/database.types.ts'
 import { errorMessage } from '../../lib/errors.ts'
 import { formatDate } from '../../lib/format.ts'
+import { useState } from 'react'
 
-/** Fiche d'un athlète vue par son coach. */
-export function AthletePage() {
+/** Un athlète vu par son coach : planning (par défaut) ou fiche. */
+export function AthletePage({ tab }: { tab: 'planning' | 'fiche' }) {
   const { athleteId = '' } = useParams()
   const coachId = useUserId()
   const link = useCoachLink(coachId, athleteId)
@@ -63,9 +69,28 @@ export function AthletePage() {
         }
       />
 
+      <TabLinks
+        tabs={[
+          { to: `/athletes/${athleteId}`, label: 'Planning', end: true },
+          { to: `/athletes/${athleteId}/fiche`, label: 'Fiche' },
+        ]}
+      />
+
+      {archived && (
+        <div className="mb-6">
+          <Alert tone="warning">Athlète archivé : il n’apparaît plus dans ta liste principale.</Alert>
+        </div>
+      )}
+      {setStatus.isError && (
+        <div className="mb-6">
+          <Alert tone="error">{errorMessage(setStatus.error)}</Alert>
+        </div>
+      )}
+
+      {tab === 'planning' ? (
+        <AthletePlanning athlete={athlete} fiche={fiche} />
+      ) : (
       <div className="space-y-6">
-        {archived && <Alert tone="warning">Athlète archivé : il n’apparaît plus dans ta liste principale.</Alert>}
-        {setStatus.isError && <Alert tone="error">{errorMessage(setStatus.error)}</Alert>}
 
         <div className="grid gap-6 lg:grid-cols-2">
           <Card title="Physiologie" description="Sert au calcul des zones de fréquence cardiaque.">
@@ -97,6 +122,50 @@ export function AthletePage() {
           <AthleteInfoForm profile={fiche} onSave={(patch) => update.mutateAsync(patch)} />
         </Card>
       </div>
+      )}
     </>
+  )
+}
+
+function AthletePlanning({ athlete, fiche }: { athlete: CoachLink; fiche: AthleteProfile }) {
+  const [today] = useState(() => todayIso())
+  const races = useUpcomingRaces(athlete.athlete_id, today)
+  const [editing, setEditing] = useState<Race | 'new' | null>(null)
+  const name = athlete.athlete_name || athlete.athlete_email
+
+  return (
+    <div className="space-y-6">
+      {fiche.zones.length === 0 && (
+        <Alert tone="info">
+          Pas encore de zones pour {name} : renseigne-les dans l’onglet Fiche pour que les cibles en zone se
+          traduisent en FC et en allure.
+        </Alert>
+      )}
+      <PlanningBoard athletes={[{ id: athlete.athlete_id, name, zones: fiche.zones }]} multi={false} />
+      <Card
+        title="Courses et objectifs"
+        description="Priorité A : objectif de la saison ; B : course importante ; C : préparation."
+        actions={
+          <Button variant="secondary" onClick={() => setEditing('new')}>
+            Ajouter une course
+          </Button>
+        }
+      >
+        {races.isPending ? (
+          <LoadingBlock />
+        ) : races.isError ? (
+          <Alert tone="error">{errorMessage(races.error)}</Alert>
+        ) : (
+          <RaceList races={races.data} today={today} onEdit={setEditing} />
+        )}
+      </Card>
+      {editing && (
+        <RaceEditor
+          athleteId={athlete.athlete_id}
+          race={editing === 'new' ? undefined : editing}
+          onClose={() => setEditing(null)}
+        />
+      )}
+    </div>
   )
 }

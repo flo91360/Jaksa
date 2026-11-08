@@ -37,12 +37,12 @@ export function PublicOnly({ children }: { children: ReactNode }) {
   return children
 }
 
-/** Accueil : le coach va vers ses athlètes, l'athlète vers sa journée. */
+/** Accueil : le coach va vers son planning, l'athlète vers sa journée. */
 export function HomeRedirect() {
   const profile = useMyProfile()
   if (profile.isPending) return <FullPageSpinner />
   if (profile.isError) return <ProfileError error={profile.error} />
-  return <Navigate to={profile.data.role === 'coach' ? '/athletes' : '/aujourdhui'} replace />
+  return <Navigate to={profile.data.role === 'coach' ? '/planning' : '/aujourdhui'} replace />
 }
 
 function ProfileError({ error }: { error: Error }) {

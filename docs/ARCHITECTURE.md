@@ -29,7 +29,7 @@ chaque requête est faite au nom de l'utilisateur connecté, et les règles RLS
 | `tests/db/` | Tests des règles de sécurité sur un vrai PostgreSQL (PGlite) |
 | `docs/` | Plan, architecture, mise en ligne |
 
-## Modèle de données (0.1.0)
+## Modèle de données
 
 | Table / vue | Rôle |
 |---|---|
@@ -40,11 +40,30 @@ chaque requête est faite au nom de l'utilisateur connecté, et les règles RLS
 | `athlete_metrics_history` | Historique de la physiologie et des zones (à chaque modification) |
 | `coach_private_notes` | Notes du coach sur un athlète |
 | `coach_links` (vue) | Liens avec les noms des deux parties, filtrés par la RLS |
+| `workouts` (0.2.0) | Séances planifiées : athlète, coach, date, ordre dans la journée, type, titre, consignes, étapes (JSON) |
+| `workout_templates` (0.2.0) | Bibliothèque de séances types, propre à chaque coach |
+| `races` (0.2.0) | Courses et objectifs de l'athlète : date, distance, D+, priorité A/B/C |
 
 Zones (`athlete_profiles.zones`) : tableau de 7 zones au plus, chacune de la forme
 `{ zone, name, hr_min, hr_max, pace_slow, pace_fast }`. FC en bpm, allures en
 **secondes par km** (`pace_fast` est la plus rapide, donc la plus petite valeur).
 La base vérifie ce format (`zones_are_valid`), l'application aussi (`validateZones`).
+
+Étapes d'une séance (`workouts.steps`, `workout_templates.steps`) : tableau de 40 éléments au plus, chacun
+étant une étape ou un bloc répété (un seul niveau, comme sur une montre Garmin) :
+
+```
+étape : { type: 'step', kind, duration, target, note }
+  kind     : warmup | active | recovery | rest | cooldown
+  duration : { type: 'time', seconds } | { type: 'distance', meters } | { type: 'open' }
+  target   : { type: 'none' } | { type: 'zone', zone } | { type: 'pace', fast, slow } | { type: 'hr', min, max }
+bloc  : { type: 'repeat', count, steps: [étape, …] }
+```
+
+Une cible en **zone** n'enregistre que le numéro : la FC et l'allure sont lues dans les zones de l'athlète au
+moment de l'affichage. Une même séance type donne donc les bonnes valeurs à chaque athlète, et suit ses zones
+quand le coach les met à jour. La base vérifie ce format (`workout_steps_are_valid`), l'application aussi
+(`validateWorkoutItems`). Durées, distances totales et export `.FIT` sont calculés dans `src/domain/`.
 
 ## Qui voit quoi
 
@@ -58,8 +77,29 @@ La base vérifie ce format (`zones_are_valid`), l'application aussi (`validateZo
 | Notes privées | lit, modifie | **jamais** | — |
 | Invitations | crée, lit, annule les siennes | — | aperçu par jeton |
 | Rôle (`coach` / `athlete`) | ne peut pas le changer | ne peut pas le changer | — |
+| Séances de ses athlètes / les siennes | lit, crée, modifie, supprime | lit seulement | — |
+| Séances des autres athlètes | **jamais** | **jamais** | — |
+| Séances types (bibliothèque) | les siennes : tout | **jamais** | — |
+| Courses et objectifs | lit, crée, modifie, supprime | lit, crée, modifie, supprime | — |
 
-Ces règles sont vérifiées automatiquement par `tests/db/socle.test.ts`.
+Ces règles sont vérifiées automatiquement par `tests/db/socle.test.ts` et `tests/db/planification.test.ts`.
+
+Une séance ne change jamais d'athlète : la copier vers un autre athlète crée une nouvelle séance.
+
+## Export `.FIT`
+
+En attendant l'accès aux API Garmin (0.4.0), chaque séance de course peut être téléchargée au format FIT
+(`src/domain/fit.ts`), puis copiée par câble USB dans le dossier `GARMIN/NewFiles` de la montre.
+
+- L'encodeur est écrit à la main d'après la description publique du protocole : aucune bibliothèque Garmin n'est livrée dans le site.
+- Les tests relisent chaque fichier produit avec le SDK officiel de Garmin (`@garmin/fitsdk`, en dépendance de développement seulement).
+- Une cible en zone devient, au choix, une plage d'**allure** (par défaut) ou une plage de **FC** en bpm, tirées des zones de l'athlète.
+
+## Sauvegardes
+
+Une tâche GitHub Actions (`.github/workflows/sauvegarde.yml`) exporte chaque nuit les données (`pg_dump`, données
+seulement), les chiffre en AES-256 avec une phrase secrète et les garde 30 jours. Restauration : voir
+`docs/DEPLOIEMENT.md`.
 
 ## Invitation d'un athlète
 

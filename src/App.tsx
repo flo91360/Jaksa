@@ -10,6 +10,8 @@ import { MyProfilePage } from './pages/athlete/MyProfilePage.tsx'
 import { TodayPage } from './pages/athlete/TodayPage.tsx'
 import { AthletePage } from './pages/coach/AthletePage.tsx'
 import { AthletesPage } from './pages/coach/AthletesPage.tsx'
+import { LibraryPage } from './pages/coach/LibraryPage.tsx'
+import { PlanningPage } from './pages/coach/PlanningPage.tsx'
 
 export function App() {
   return (
@@ -46,7 +48,31 @@ export function App() {
           path="athletes/:athleteId"
           element={
             <RequireRole role="coach">
-              <AthletePage />
+              <AthletePage tab="planning" />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="athletes/:athleteId/fiche"
+          element={
+            <RequireRole role="coach">
+              <AthletePage tab="fiche" />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="planning"
+          element={
+            <RequireRole role="coach">
+              <PlanningPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="seances-types"
+          element={
+            <RequireRole role="coach">
+              <LibraryPage />
             </RequireRole>
           }
         />

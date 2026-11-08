@@ -4,9 +4,11 @@ import {
   type ReactNode,
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
+  useEffect,
   useId,
+  useRef,
 } from 'react'
-import { Link } from 'react-router'
+import { Link, NavLink } from 'react-router'
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost'
 
@@ -288,5 +290,86 @@ export function SavedHint({ show }: { show: boolean }) {
     <span className="text-sm font-medium text-emerald-700" role="status">
       Enregistré ✓
     </span>
+  )
+}
+
+/**
+ * Fenêtre modale (élément <dialog> natif : focus, touche Échap, fond).
+ * Plein écran sur téléphone, centrée sur ordinateur.
+ */
+export function Modal({
+  title,
+  onClose,
+  children,
+  footer,
+  wide = false,
+}: {
+  title: ReactNode
+  onClose: () => void
+  children: ReactNode
+  footer?: ReactNode
+  wide?: boolean
+}) {
+  const ref = useRef<HTMLDialogElement>(null)
+  const titleId = useId()
+
+  useEffect(() => {
+    const dialog = ref.current
+    if (dialog && !dialog.open) dialog.showModal()
+    return () => dialog?.close()
+  }, [])
+
+  return (
+    <dialog
+      ref={ref}
+      aria-labelledby={titleId}
+      onCancel={(event) => {
+        event.preventDefault()
+        onClose()
+      }}
+      className={`m-0 h-dvh max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-slate-900/50 sm:m-auto sm:h-auto sm:max-h-[90dvh] sm:rounded-2xl ${wide ? 'sm:max-w-3xl' : 'sm:max-w-lg'}`}
+    >
+      <div className="flex h-full max-h-[inherit] flex-col bg-white sm:rounded-2xl">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-6">
+          <h2 id={titleId} className="min-w-0 truncate text-lg font-semibold text-slate-900">
+            {title}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-2xl text-slate-500 hover:bg-slate-100"
+            aria-label="Fermer"
+          >
+            ×
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">{children}</div>
+        {footer && (
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
+            {footer}
+          </div>
+        )}
+      </div>
+    </dialog>
+  )
+}
+
+/** Onglets reliés à des pages (fiche athlète : planning / fiche). */
+export function TabLinks({ tabs }: { tabs: { to: string; label: string; end?: boolean }[] }) {
+  return (
+    <nav className="mb-6 flex gap-1 border-b border-slate-200" aria-label="Sections">
+      {tabs.map((tab) => (
+        <NavLink
+          key={tab.to}
+          to={tab.to}
+          end={tab.end}
+          className={({ isActive }) =>
+            `-mb-px min-h-11 border-b-2 px-4 py-2.5 text-sm font-semibold ${isActive ? 'border-emerald-700 text-emerald-800' : 'border-transparent text-slate-500 hover:text-slate-800'}`
+          }
+        >
+          {tab.label}
+        </NavLink>
+      ))}
+    </nav>
   )
 }

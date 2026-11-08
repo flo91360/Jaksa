@@ -5,10 +5,11 @@ ultra-trail, reprise après blessure). Elle remplace l'essentiel de Nolio, pour 
 coût d'hébergement proche de zéro.
 
 - **Coach** : invite ses athlètes par lien, tient leur fiche (physiologie, objectifs, blessures, notes privées) et définit leurs zones de FC et les allures correspondantes.
-- **Athlète** : rejoint son coach en un clic, retrouve ses zones et complète son profil.
+- **Planification** : calendrier à la semaine ou au mois, par athlète ou pour tous, avec glisser-déposer ; constructeur de séances (échauffement, blocs répétés, récupérations) dont les zones se traduisent en FC et en allure ; bibliothèque de séances types ; courses A/B/C.
+- **Athlète** : rejoint son coach en un clic, voit sa séance du jour et sa semaine, exporte la séance en `.FIT` pour sa montre Garmin, retrouve ses zones et ses courses.
 - Le site fonctionne sur téléphone et sur ordinateur, et s'installe sur l'écran d'accueil.
 
-La suite (planification des séances, commentaires, messagerie, envoi sur les
+La suite (commentaires, messagerie, retours de séance, envoi automatique sur les
 montres Garmin) est décrite dans [docs/PLAN.md](docs/PLAN.md).
 
 ## Technique
@@ -37,7 +38,7 @@ npm run check   # lint (oxlint) + types + tests + build
 
 Les tests couvrent :
 
-- la logique métier (zones, allures, formulaires) ;
+- la logique métier (zones, allures, formulaires, calendrier, séances, export `.FIT` relu par le SDK Garmin) ;
 - les règles de sécurité de la base, exécutées sur un vrai PostgreSQL en mémoire (PGlite) : un coach ne voit que ses athlètes, un athlète ne voit pas les autres, etc.
 
 La CI GitHub les lance sur chaque pull request.
