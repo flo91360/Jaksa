@@ -143,9 +143,11 @@ Site (athlète connecté) ──► fonction Supabase garmin-import ──► AP
 - La conversion et le rattachement (`supabase/functions/_shared/garmin-match.ts`) sont partagés par le site et la
   fonction, et testés dans `src/domain/garmin.test.ts`.
 - La clé Garmin n'est connue que de la fonction (secret Supabase) ; le jeton d'accès n'est jamais stocké.
-- Rattachement : même jour (heure locale de la montre), sport compatible (une sortie course ou trail va sur une séance
+- Rattachement : même jour (heure locale de la montre), sinon séance de la veille encore libre (séance faite avec un
+  jour de retard ; jamais celle du lendemain), sport compatible (une sortie course ou trail va sur une séance
   de course ou de trail, le vélo sur « autre sport »), une activité par séance, dans l'ordre de la journée. Un
   rattachement déjà enregistré n'est pas changé par un nouvel import.
+- Les activités sans séance (sorties libres) apparaissent dans le planning du coach, le jour où elles ont été faites.
 - Le retour de séance est pré-rempli avec la durée, la distance et le D+ mesurés par la montre.
 - Avec le niveau Starter, Garmin enverra lui-même les activités au site : la lecture chez Garmin sera à refaire, mais
   pas la table, le rattachement ni l'affichage.

@@ -1,5 +1,10 @@
 # Journal des versions
 
+## [0.4.2] - 2026-11-08
+
+- **Séance faite avec un jour de retard** : une activité Garmin sans séance prévue le jour même est rattachée à la séance de la veille, si celle-ci n'a pas encore d'activité. Jamais à celle du lendemain, qui n'a peut-être pas encore été courue.
+- **Sorties libres dans le planning du coach** : une activité Garmin sans séance apparaît le jour où elle a été faite (« ⌚ Sortie libre »), avec durée et distance, et le détail (allure, FC, D+) au survol.
+
 ## [0.4.1] - 2026-11-08
 
 - **Import Garmin automatique** : toutes les 15 minutes, Supabase va chercher les nouvelles activités du compte de test chez Garmin et les rattache aux séances, sans que l'athlète ait à ouvrir le site. Le coach les voit donc aussitôt.

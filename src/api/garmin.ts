@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FunctionsHttpError } from '@supabase/supabase-js'
-import { todayIso } from '../domain/calendar.ts'
+import { addDays, type IsoDate, todayIso } from '../domain/calendar.ts'
 import { type GarminSummary, importErrorMessage, importRange, planImport, summaryToActivity } from '../domain/garmin.ts'
 import type { GarminActivity, GarminActivityInsert, GarminSyncRun } from '../lib/database.types.ts'
 import { supabase } from '../lib/supabase.ts'
@@ -99,7 +99,8 @@ export function useGarminImport(athleteId: string) {
             .from('workouts')
             .select('id, scheduled_on, kind, position')
             .eq('athlete_id', athleteId)
-            .gte('scheduled_on', range.from)
+            // La veille du premier jour aussi : une séance peut être faite avec un jour de retard.
+            .gte('scheduled_on', addDays(range.from, -1))
             .lte('scheduled_on', range.to),
           supabase
             .from('garmin_activities')
@@ -126,5 +127,27 @@ export function useGarminImport(athleteId: string) {
       return { imported: values.length, linked }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['garmin-activities'] }),
+  })
+}
+
+/** Coach : activités Garmin sans séance (sorties libres) de ses athlètes, entre deux dates. */
+export function useFreeGarminActivities(athleteIds: string[], from: IsoDate, to: IsoDate) {
+  const ids = [...athleteIds].sort()
+  return useQuery({
+    queryKey: ['garmin-activities', 'free', ids, from, to],
+    enabled: ids.length > 0,
+    retry: false,
+    queryFn: async (): Promise<GarminActivity[]> => {
+      const { data, error } = await supabase
+        .from('garmin_activities')
+        .select('*')
+        .in('athlete_id', ids)
+        .is('workout_id', null)
+        .gte('local_date', from)
+        .lte('local_date', to)
+        .order('start_time')
+      if (error) throw error
+      return data
+    },
   })
 }

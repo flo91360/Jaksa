@@ -71,7 +71,8 @@ export async function runSync({
   if (fetched.activities.length > 0) {
     try {
       const [workouts, existing] = await Promise.all([
-        db.workouts(athleteId, range.from, range.to),
+        // La veille du premier jour aussi : une séance peut être faite avec un jour de retard.
+        db.workouts(athleteId, new Date(Date.parse(`${range.from}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10), range.to),
         db.existingLinks(
           athleteId,
           fetched.activities.map((a) => a.activityId),

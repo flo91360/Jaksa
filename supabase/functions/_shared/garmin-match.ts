@@ -73,9 +73,16 @@ const COMPATIBLE: Record<GarminSport, WorkoutKind[]> = {
 type MatchActivity = { garmin_activity_id: number; local_date: string; start_time: string; activity_type: string }
 export type MatchWorkout = { id: string; scheduled_on: string; kind: WorkoutKind; position: number }
 
+const DAY_MS = 86_400_000
+/** Veille d'une date AAAA-MM-JJ. */
+const dayBefore = (date: string) => new Date(Date.parse(`${date}T00:00:00Z`) - DAY_MS).toISOString().slice(0, 10)
+
 /**
- * Rattache chaque activité à une séance prévue le même jour et d'un sport compatible.
+ * Rattache chaque activité à une séance prévue d'un sport compatible.
  *
+ * - D'abord le même jour (heure locale de la montre), pour toutes les activités ;
+ * - puis, pour celles qui restent, la séance de la **veille** encore libre : une séance faite avec un jour
+ *   de retard. Jamais celle du lendemain, qui n'a peut-être pas encore été courue.
  * - Un rattachement déjà enregistré (`existing`) est gardé tel quel.
  * - Une séance ne reçoit qu'une activité ; avec deux séances le même jour (biquotidien), les
  *   activités sont prises dans l'ordre de l'heure de départ, et les séances dans leur ordre de la journée.
@@ -95,14 +102,18 @@ export function matchActivities(
   const pending = activities
     .filter((a) => !existing.get(a.garmin_activity_id))
     .sort((a, b) => a.start_time.localeCompare(b.start_time))
-  for (const activity of pending) {
+  const assign = (activity: MatchActivity, date: string) => {
     const kinds = COMPATIBLE[garminSport(activity.activity_type)]
-    const candidates = workouts
-      .filter((w) => w.scheduled_on === activity.local_date && !taken.has(w.id) && kinds.includes(w.kind))
-      .sort((a, b) => kinds.indexOf(a.kind) - kinds.indexOf(b.kind) || a.position - b.position)
-    const chosen = candidates[0]?.id ?? null
-    if (chosen) taken.add(chosen)
-    result.set(activity.garmin_activity_id, chosen)
+    const chosen = workouts
+      .filter((w) => w.scheduled_on === date && !taken.has(w.id) && kinds.includes(w.kind))
+      .sort((a, b) => kinds.indexOf(a.kind) - kinds.indexOf(b.kind) || a.position - b.position)[0]
+    if (chosen) taken.add(chosen.id)
+    return chosen?.id ?? null
+  }
+  for (const activity of pending) result.set(activity.garmin_activity_id, assign(activity, activity.local_date))
+  for (const activity of pending) {
+    if (result.get(activity.garmin_activity_id)) continue
+    result.set(activity.garmin_activity_id, assign(activity, dayBefore(activity.local_date)))
   }
   return result
 }
