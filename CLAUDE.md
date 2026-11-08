@@ -12,6 +12,7 @@ l'interface, commentaires et messages de commit en français.
 
 - Base de données :
   - toute évolution passe par un **nouveau** fichier `supabase/migrations/AAAAMMJJHHMMSS_nom.sql` ; ne jamais modifier une migration déjà fusionnée ;
+  - migrations et fonctions (`supabase/functions/`) sont appliquées automatiquement à la fusion dans `main` (`.github/workflows/deploiement-supabase.yml`) : ne rien demander de coller dans le SQL Editor. Un réglage qui ne peut pas être automatisé (secret, tâche planifiée) est signalé dans la pull request et dans `docs/DEPLOIEMENT.md` ;
   - chaque nouvelle table a la RLS activée, des droits `GRANT` limités, et des tests dans `tests/db/` (qui lit, qui écrit, qui est refusé) ;
   - mettre à jour `src/lib/database.types.ts` dans le même changement.
 - Les calculs (zones, allures, charge…) vont dans `src/domain/`, sans dépendance à React ni à Supabase, avec des tests.
