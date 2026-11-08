@@ -13,13 +13,8 @@ Compter environ une heure la première fois.
    - nom : `rob1coach` ;
    - région : **Europe** (Paris ou Francfort). Ce sont des données de santé, elles restent dans l'UE.
    - mot de passe de la base : fort, à conserver dans un gestionnaire de mots de passe.
-2. Créer les tables et les règles de sécurité. Dans **SQL Editor** → **New query**, coller le contenu de chaque
-   fichier de [`supabase/migrations/`](../supabase/migrations/), **dans l'ordre**, et faire **Run** à chaque fois :
-   - `20261108120000_socle.sql` (0.1.0) ;
-   - `20261109090000_planification.sql` (0.2.0 : séances, séances types, courses) ;
-   - `20261110090000_echanges.sql` (0.3.0 : retours de séance, commentaires, messagerie, e-mails) ;
-   - `20261111090000_garmin.sql` (0.4.0 : activités importées depuis Garmin).
-   - Avec la ligne de commande, c'est équivalent : `npx supabase link --project-ref <ref>` puis `npx supabase db push`.
+2. Créer les tables et les règles de sécurité : rien à coller à la main, c'est une tâche GitHub qui s'en charge.
+   Faire tout de suite sa mise en place (étape 4, 10 minutes), avant l'étape 2 qui a besoin des tables.
 3. Dans **Authentication** → **Sign In / Providers** → **Email** :
    - garder le fournisseur e-mail activé ;
    - **Confirm email** : le plus simple au départ est de le **désactiver**, car les athlètes arrivent par un lien personnel. S'il reste activé, l'envoi d'e-mails de l'étape 5 est obligatoire.
@@ -66,24 +61,97 @@ Le site ne permet pas de devenir coach tout seul : c'est voulu.
 
 Si le site affiche « Configuration incomplète », les deux variables de build manquent.
 
-## 4. Mettre à jour la base de données
+## 4. Mises à jour automatiques de la base et des fonctions
 
-Chaque évolution de la base est un nouveau fichier dans `supabase/migrations/`, numéroté par date. Pour l'appliquer :
+### À quoi servent les fichiers `.sql`
 
-- coller le **nouveau** fichier dans le SQL Editor ;
-- ou lancer `npx supabase db push`.
+Le site (le code) et la base de données vivent à deux endroits différents. Cloudflare reconstruit le site tout seul à
+chaque fusion, mais la base, chez Supabase, ne change que si on lui dit quoi faire. Chaque fichier de
+`supabase/migrations/` est une **migration** : une liste d'instructions qui fait évoluer la structure de la base
+(nouvelles tables comme les séances ou les messages, nouvelles colonnes, règles de qui a le droit de lire quoi). Elles
+s'appliquent dans l'ordre de leur numéro, **une seule fois chacune**. Supabase note celles qu'il a déjà reçues.
 
-Il faut appliquer les fichiers dans l'ordre, une seule fois chacun, et ne jamais modifier une migration déjà appliquée.
+La tâche GitHub [`.github/workflows/deploiement-supabase.yml`](../.github/workflows/deploiement-supabase.yml) fait ce
+travail à chaque fusion dans `main` qui touche `supabase/` :
 
-| Version | Fichier à appliquer |
+- elle applique les **nouvelles** migrations, et seulement celles-là (`supabase db push`) ;
+- elle déploie les **fonctions Supabase** de `supabase/functions/` (aujourd'hui `garmin-import`).
+
+Elle tourne en même temps que la mise en ligne du site par Cloudflare et finit en général avant elle (moins d'une
+minute). Si elle échoue, GitHub envoie un e-mail et rien n'est appliqué à moitié : chaque migration passe en entier ou
+pas du tout.
+
+Les migrations collées à la main avant la mise en place (0.1.0 à 0.4.0) ne sont pas rejouées : au premier passage, la
+tâche voit que leurs tables existent déjà et les note comme appliquées dans l'historique de Supabase.
+
+### Mise en place (10 minutes, une seule fois)
+
+Il faut deux secrets dans GitHub. Un secret est une valeur que GitHub garde chiffrée et ne réaffiche jamais, même à
+toi : on ne le colle nulle part ailleurs (ni dans un e-mail, ni dans une discussion, ni dans un fichier du dépôt).
+
+**Secret 1 : `SUPABASE_DB_URL`, l'accès à la base.** Si la sauvegarde quotidienne (étape 5) est déjà en place, il
+existe déjà : passer au secret 2. Sinon :
+
+1. Ouvrir le projet sur [supabase.com/dashboard](https://supabase.com/dashboard), bouton **Connect** en haut de la
+   page → onglet **Connection String** → méthode **Session pooler**, et copier la chaîne qui ressemble à
+   `postgresql://postgres.abcdefghij:[YOUR-PASSWORD]@aws-0-eu-west-3.pooler.supabase.com:5432/postgres`.
+2. La coller dans un éditeur de texte (Bloc-notes, TextEdit) et remplacer `[YOUR-PASSWORD]`, **crochets compris**,
+   par le mot de passe de la base choisi à la création du projet.
+   - Mot de passe oublié : **Project Settings** → **Database** → **Reset database password**. Choisir un mot de passe
+     long **sans caractères spéciaux** (lettres et chiffres seulement, sinon il faut les encoder dans la chaîne).
+     Penser ensuite à mettre à jour ce secret si la sauvegarde l'utilisait déjà.
+3. Sur GitHub, ouvrir [**Settings** → **Secrets and variables** → **Actions** → **New repository secret**](https://github.com/flo91360/rob1coach/settings/secrets/actions/new) :
+   - **Name** : `SUPABASE_DB_URL` ;
+   - **Secret** : la chaîne complète ;
+   - **Add secret**. Effacer ensuite la chaîne de l'éditeur de texte sans l'enregistrer.
+
+**Secret 2 : `SUPABASE_ACCESS_TOKEN`, le droit de déployer les fonctions.**
+
+1. Sur Supabase, cliquer sur l'avatar en haut à droite → **Account preferences** → **Access Tokens**
+   ([lien direct](https://supabase.com/dashboard/account/tokens)) → **Generate new token**.
+2. Nom : `github-rob1coach`. Choisir une durée sans expiration, ou la plus longue proposée (il faudra alors
+   recommencer ces étapes à l'échéance), puis **Generate token**.
+3. Le jeton (`sbp_…`) ne s'affiche qu'**une fois** : cliquer sur l'icône de copie, puis de nouveau
+   [**New repository secret**](https://github.com/flo91360/rob1coach/settings/secrets/actions/new) :
+   - **Name** : `SUPABASE_ACCESS_TOKEN` ;
+   - **Secret** : coller le jeton ;
+   - **Add secret**.
+
+La ref du projet n'est pas un troisième secret : la tâche la lit dans `SUPABASE_DB_URL` (c'est la partie
+`abcdefghij` après `postgres.`).
+
+**Premier essai.** Sur GitHub, onglet **Actions** → **Déploiement Supabase** → **Run workflow** → **Run workflow**.
+Après une minute, la ligne doit passer au vert. En cliquant dessus, le journal indique les migrations notées comme
+déjà appliquées, celles qui ont été appliquées, puis la fonction déployée. Un second lancement doit afficher
+« Remote database is up to date ».
+
+Tant qu'un secret manque, la tâche ne fait rien et l'indique par un avertissement jaune (sans échec).
+
+### Pour vérifier l'état de la base
+
+**Database** → **Migrations** dans le tableau de bord de Supabase liste les migrations appliquées. Elles doivent
+correspondre aux fichiers de `supabase/migrations/` :
+
+| Version | Fichier |
 |---|---|
 | 0.1.0 | `20261108120000_socle.sql` |
 | 0.2.0 | `20261109090000_planification.sql` |
 | 0.3.0 | `20261110090000_echanges.sql` |
 | 0.4.0 | `20261111090000_garmin.sql` |
 
-Pour passer de 0.1.0 à 0.2.0, il suffit donc de coller `20261109090000_planification.sql` dans le SQL Editor
-**avant** de fusionner la pull request (sinon le site déployé cherche des tables qui n'existent pas encore).
+### Ce qui reste à faire à la main
+
+La tâche ne touche qu'à la structure de la base et au code des fonctions. Restent manuels, **une seule fois** chacun,
+parce qu'il s'agit de réglages ou de secrets qui n'ont pas leur place dans le dépôt :
+
+- la création du projet Supabase et ses réglages d'authentification (étape 1) ;
+- la création du compte coach (étape 2) ;
+- la mise en route des e-mails avec `supabase/emails.sql` (étape 7) : ce fichier contient la clé Brevo une fois
+  rempli, il ne peut donc pas être une migration ;
+- les secrets de la fonction Garmin (étape 8.2) et le renouvellement de la clé Garmin quand elle expire ;
+- les deux secrets GitHub ci-dessus.
+
+Une future version qui demande un nouveau réglage de ce type le dira dans sa pull request et dans `CHANGELOG.md`.
 
 ## 5. Sauvegarde quotidienne
 
@@ -98,14 +166,11 @@ Tant que les deux secrets ci-dessous manquent, la tâche s'arrête avec un simpl
 
 ### Mise en place (10 minutes)
 
-1. Dans Supabase : bouton **Connect** en haut de la page du projet → **Session pooler** → copier la chaîne
-   de connexion (`postgresql://postgres.<ref>:[YOUR-PASSWORD]@aws-…pooler.supabase.com:5432/postgres`) et y remplacer
-   `[YOUR-PASSWORD]` par le mot de passe de la base. Le « Session pooler » est nécessaire : GitHub ne sait pas joindre
-   la connexion directe.
+1. Créer le secret `SUPABASE_DB_URL` comme à l'étape 4 (secret 1), s'il n'existe pas déjà. Le « Session pooler » est
+   nécessaire : GitHub ne sait pas joindre la connexion directe.
 2. Choisir une **phrase secrète** longue (5 ou 6 mots) et la ranger dans le gestionnaire de mots de passe. Sans elle,
    les sauvegardes sont illisibles, y compris pour nous.
 3. Sur GitHub : **Settings** → **Secrets and variables** → **Actions** → **New repository secret** :
-   - `SUPABASE_DB_URL` : la chaîne de connexion ;
    - `BACKUP_PASSPHRASE` : la phrase secrète.
 4. **Actions** → **Sauvegarde de la base** → **Run workflow** pour un premier essai : un fichier
    `rob1coach-AAAA-MM-JJ.tar.gz.gpg` doit apparaître dans les artefacts.
@@ -122,7 +187,8 @@ L'offre gratuite de GitHub (2 000 minutes par mois pour un dépôt privé) suffi
    gpg --decrypt rob1coach-AAAA-MM-JJ.tar.gz.gpg | tar -xzf -   # demande la phrase secrète
    ```
 
-2. Créer la structure : appliquer toutes les migrations dans l'ordre (étape 1.2).
+2. Créer la structure : mettre la chaîne Session pooler du nouveau projet dans le secret `SUPABASE_DB_URL` et lancer
+   **Actions** → **Déploiement Supabase** → **Run workflow** (étape 4), qui applique toutes les migrations.
 3. Recharger les comptes puis les données, déclencheurs suspendus (sinon chaque compte recréerait un profil vide) :
 
    ```bash
@@ -152,7 +218,7 @@ npm run check   # lint, types, tests (dont les règles de sécurité de la base)
 
 ## 7. E-mails automatiques (0.3.0)
 
-Une fois la migration `20261110090000_echanges.sql` appliquée, le site enregistre les e-mails à envoyer (séance du
+Une fois la migration `20261110090000_echanges.sql` appliquée (automatique, étape 4), le site enregistre les e-mails à envoyer (séance du
 lendemain, nouveaux retours, commentaires et messages). Pour qu'ils partent vraiment, il faut les activer une fois
 (15 minutes) :
 
@@ -179,30 +245,25 @@ Pour l'instant, une seule personne importe ses activités Garmin, avec sa clé d
 Supabase, et une fonction Supabase (`garmin-import`) s'en sert pour lire les activités chez Garmin.
 Compter 15 minutes.
 
-1. **Appliquer la migration** `20261111090000_garmin.sql` (étape 4), avant de fusionner la pull request.
-2. **Créer la clé Garmin** : se connecter sur [connect.garmin.com](https://connect.garmin.com), ouvrir
+1. **Créer la clé Garmin** : se connecter sur [connect.garmin.com](https://connect.garmin.com), ouvrir
    [la page de la clé d'API personnelle](https://connect.garmin.com/app/settings/personalApiToken), accepter les
    conditions, choisir une durée (30 jours à 1 an) et cliquer sur **Create**. La clé ne s'affiche qu'**une fois** :
    la copier tout de suite dans le gestionnaire de mots de passe, et ne la coller nulle part ailleurs (ni dans un
    e-mail, ni dans une discussion). Il n'y a rien d'autre à générer : la fonction échange elle-même la clé contre un
    jeton d'accès de 24 h à chaque import.
-3. **Ranger la clé dans Supabase** : **Edge Functions** → **Secrets** → ajouter deux secrets :
+2. **Ranger la clé dans Supabase** : **Edge Functions** → **Secrets** → ajouter deux secrets :
    - `GARMIN_PERSONAL_API_KEY` : la clé Garmin ;
    - `GARMIN_ATHLETE_EMAIL` : l'adresse e-mail du compte **athlète** Rob1Coach qui recevra ces activités. La
      fonction refuse tout autre compte, coach compris.
-4. **Déployer la fonction** `garmin-import`, au choix :
-   - avec la ligne de commande : `npx supabase functions deploy garmin-import --project-ref <ref>` ;
-   - ou dans le tableau de bord : **Edge Functions** → **Deploy a new function** → **Via Editor**, nom
-     `garmin-import`, puis recopier les deux fichiers de
-     [`supabase/functions/garmin-import/`](../supabase/functions/garmin-import/) (`index.ts` et `garmin.ts`) et
-     **Deploy**. Laisser l'option **Verify JWT** activée.
-5. **Essayer** : se connecter sur le site avec le compte athlète choisi, **Mon compte** → **Montre Garmin (essai)**
+3. **Déployer la fonction** `garmin-import` : c'est automatique (étape 4). Pour la redéployer sans attendre une
+   fusion : **Actions** → **Déploiement Supabase** → **Run workflow**.
+4. **Essayer** : se connecter sur le site avec le compte athlète choisi, **Mon compte** → **Montre Garmin (essai)**
    → **Importer mes activités Garmin**. Les activités des 14 derniers jours apparaissent ensuite sous la séance prévue
    le même jour, et dans la carte **Ta montre** de l'accueil, qui relance l'import toute seule à l'ouverture (au plus
    toutes les 30 minutes).
 
 Garmin prévient par e-mail une semaine avant l'expiration de la clé. Pour la renouveler : créer une nouvelle clé
-(étape 2) et remplacer `GARMIN_PERSONAL_API_KEY` (étape 3). Pour tout arrêter : supprimer la clé dans Garmin Connect,
+(étape 1) et remplacer `GARMIN_PERSONAL_API_KEY` (étape 2). Pour tout arrêter : supprimer la clé dans Garmin Connect,
 ce qui coupe aussitôt l'accès.
 
 Si l'import affiche « L'import Garmin n'est pas disponible », la fonction n'est pas déployée ; « pas encore ouvert

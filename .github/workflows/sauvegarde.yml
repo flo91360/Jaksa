@@ -2,7 +2,7 @@ name: Sauvegarde de la base
 
 # Sauvegarde quotidienne de la base Supabase (l'offre gratuite n'en fait pas).
 # Le fichier est chiffré (AES-256) avant d'être conservé 30 jours comme
-# artefact GitHub. Mise en place et restauration : docs/DEPLOIEMENT.md, étape 6.
+# artefact GitHub. Mise en place et restauration : docs/DEPLOIEMENT.md, étape 5.
 #
 # Secrets du dépôt nécessaires :
 #   SUPABASE_DB_URL     chaîne de connexion « Session pooler » du projet
@@ -33,7 +33,7 @@ jobs:
         id: config
         run: |
           if [ -z "$SUPABASE_DB_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
-            echo "::warning::Sauvegarde non configurée : ajouter les secrets SUPABASE_DB_URL et BACKUP_PASSPHRASE (docs/DEPLOIEMENT.md, étape 6)."
+            echo "::warning::Sauvegarde non configurée : ajouter les secrets SUPABASE_DB_URL et BACKUP_PASSPHRASE (docs/DEPLOIEMENT.md, étape 5)."
             echo "pret=non" >> "$GITHUB_OUTPUT"
           else
             echo "pret=oui" >> "$GITHUB_OUTPUT"

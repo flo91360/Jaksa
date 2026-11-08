@@ -1,0 +1,59 @@
+name: Déploiement Supabase
+
+# À chaque fusion dans main : applique les nouvelles migrations de la base
+# (supabase/migrations) et déploie les fonctions (supabase/functions).
+# Mise en place : docs/DEPLOIEMENT.md, étape 4.
+#
+# Secrets du dépôt :
+#   SUPABASE_DB_URL        chaîne de connexion « Session pooler » (la même que pour la sauvegarde)
+#   SUPABASE_ACCESS_TOKEN  jeton d'accès personnel Supabase (sbp_…)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - '.github/scripts/deploiement-supabase.sh'
+      - '.github/workflows/deploiement-supabase.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Jamais deux déploiements en même temps, et jamais d'interruption en cours de route.
+concurrency:
+  group: deploiement-supabase
+  cancel-in-progress: false
+
+jobs:
+  deploiement:
+    name: Migrations et fonctions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - name: Vérifier la configuration
+        id: config
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::warning::Déploiement Supabase non configuré : ajouter le secret SUPABASE_DB_URL (docs/DEPLOIEMENT.md, étape 4). Les migrations sont à appliquer à la main."
+            echo "pret=non" >> "$GITHUB_OUTPUT"
+          else
+            echo "pret=oui" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v5
+        if: steps.config.outputs.pret == 'oui'
+
+      - uses: supabase/setup-cli@v1
+        if: steps.config.outputs.pret == 'oui'
+        with:
+          version: 3.0.0
+
+      - name: Appliquer les migrations et déployer les fonctions
+        if: steps.config.outputs.pret == 'oui'
+        run: .github/scripts/deploiement-supabase.sh
