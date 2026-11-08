@@ -42,12 +42,31 @@ export type SyncDb = {
    * Activités de l'athlète parties depuis `since` (ISO) sans détail enregistré, ou dont le dernier essai
    * a échoué avant `retryBefore` (ISO) : les plus récentes d'abord, `limit` au plus.
    */
-  pendingDetails(athleteId: string, since: string, retryBefore: string, limit: number): Promise<{ id: string; garmin_activity_id: number }[]>
-  saveDetail(row: { activity_id: string; status: DetailStatus; data: ActivityDetail | null }): Promise<void>
-  log(entry: { athlete_id: string | null; status: SyncStatus; imported: number; linked: number; details: number }): Promise<void>
+  pendingDetails(
+    athleteId: string,
+    since: string,
+    retryBefore: string,
+    limit: number,
+  ): Promise<{ id: string; garmin_activity_id: number }[]>
+  saveDetail(row: { activity_id: string; status: DetailStatus; data: ActivityDetail | null; error: string | null }): Promise<void>
+  log(entry: {
+    athlete_id: string | null
+    status: SyncStatus
+    imported: number
+    linked: number
+    details: number
+    detail_error: string | null
+  }): Promise<void>
 }
 
-export type SyncResult = { status: SyncStatus; imported: number; linked: number; details: number }
+export type SyncResult = {
+  status: SyncStatus
+  imported: number
+  linked: number
+  details: number
+  /** Premier échec de lecture d'un .FIT pendant ce passage (« HTTP 403 », « pas de .FIT dans la réponse »…). */
+  detail_error: string | null
+}
 
 const isoDay = (time: number) => new Date(time).toISOString().slice(0, 10)
 
@@ -67,7 +86,7 @@ export async function runSync({
   /** Décodeur .FIT (SDK Garmin). Sans lui, seuls les résumés sont importés. */
   decodeFit?: DecodeFit
 }): Promise<SyncResult> {
-  const none = { imported: 0, linked: 0, details: 0 }
+  const none = { imported: 0, linked: 0, details: 0, detail_error: null }
   if (!apiKey?.trim() || !allowedEmail?.trim()) return { status: 'not_configured', ...none }
 
   const last = await db.lastRun()
@@ -99,23 +118,41 @@ export async function runSync({
       ])
       const rows = planImport(fetched.activities, workouts, existing)
       if (rows.length > 0) await db.save(athleteId, rows)
-      result = { status: 'ok', imported: rows.length, linked: rows.filter((r) => r.workout_id).length, details: 0 }
+      result = {
+        status: 'ok',
+        imported: rows.length,
+        linked: rows.filter((r) => r.workout_id).length,
+        details: 0,
+        detail_error: null,
+      }
     } catch {
       result = { status: 'save_failed', ...none }
     }
   }
   if (result.status === 'ok' && decodeFit) {
     try {
-      result.details = await importDetails({ athleteId, token: fetched.token, since: range.from, now, fetchImpl, db, decodeFit })
-    } catch {
+      const details = await importDetails({ athleteId, token: fetched.token, since: range.from, now, fetchImpl, db, decodeFit })
+      result.details = details.done
+      result.detail_error = details.error
+    } catch (error) {
       // Le détail est un plus : un échec n'empêche pas l'import des résumés, et sera retenté.
+      result.detail_error = `détail : ${error instanceof Error ? error.message : String(error)}`.slice(0, 200)
     }
   }
   await db.log({ athlete_id: athleteId, ...result })
   return result
 }
 
-/** Télécharge et enregistre le détail (.FIT) des activités qui n'en ont pas encore. Renvoie le nombre de détails lus. */
+/** Premiers octets d'une réponse, pour reconnaître ce que Garmin a renvoyé à la place d'un .FIT. */
+function describeBytes(bytes: Uint8Array, contentType: string): string {
+  const head = new TextDecoder().decode(bytes.subarray(0, 40)).replace(/[^\x20-\x7e]/g, '.')
+  return `pas de .FIT dans la réponse (${contentType || 'type inconnu'}, ${bytes.length} octets, début « ${head} »)`
+}
+
+/**
+ * Télécharge et enregistre le détail (.FIT) des activités qui n'en ont pas encore.
+ * Renvoie le nombre de détails lus et le premier échec rencontré (noté aussi dans le journal des passages).
+ */
 async function importDetails({
   athleteId,
   token,
@@ -132,7 +169,7 @@ async function importDetails({
   fetchImpl: Fetch
   db: SyncDb
   decodeFit: DecodeFit
-}): Promise<number> {
+}): Promise<{ done: number; error: string | null }> {
   const pending = await db.pendingDetails(
     athleteId,
     `${since}T00:00:00Z`,
@@ -140,26 +177,36 @@ async function importDetails({
     MAX_DETAILS_PER_RUN,
   )
   let done = 0
+  let firstError: string | null = null
   for (const activity of pending) {
     const file = await fetchActivityFile(token, activity.garmin_activity_id, fetchImpl)
-    // Garmin indisponible ou clé refusée : on s'arrête là, sans rien noter, pour réessayer au prochain passage.
-    if ('error' in file && file.error !== 'not_found') break
+    // Panne passagère : on s'arrête là, sans rien noter sur l'activité, pour réessayer au prochain passage.
+    if ('error' in file && file.error === 'garmin_unavailable') {
+      firstError ??= file.reason
+      break
+    }
     let detail: ActivityDetail | null = null
+    let error: string | null = null
     if ('bytes' in file) {
       const fit = await extractFit(file.bytes)
-      let messages = null
-      try {
-        messages = fit ? decodeFit(fit) : null
-      } catch {
-        messages = null
+      if (!fit) error = describeBytes(file.bytes, file.contentType)
+      else {
+        try {
+          const messages = decodeFit(fit)
+          detail = messages ? buildDetail(messages) : null
+          if (!detail) error = messages ? '.FIT sans enregistrement' : '.FIT illisible'
+        } catch (decodeError) {
+          error = `.FIT illisible : ${decodeError instanceof Error ? decodeError.message : String(decodeError)}`
+        }
       }
-      detail = messages ? buildDetail(messages) : null
-    }
+    } else error = file.reason
+    if (error) error = error.slice(0, 300)
+    firstError ??= error
     const status: DetailStatus = detail ? 'ok' : 'bytes' in file ? 'unreadable' : 'no_file'
-    await db.saveDetail({ activity_id: activity.id, status, data: detail })
+    await db.saveDetail({ activity_id: activity.id, status, data: detail, error })
     if (detail) done++
   }
-  return done
+  return { done, error: firstError }
 }
 
 export { sameEmail }

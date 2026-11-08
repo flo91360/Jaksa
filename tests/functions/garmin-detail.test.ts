@@ -75,8 +75,15 @@ describe('détail d’une activité (.FIT)', () => {
     expect(urls).toEqual(['https://personal.connectapi.garmin.com/download-service/files/activity/42 Bearer jeton'])
     expect('bytes' in ok && ok.bytes.length).toBe(fit.length)
     const missing = await fetchActivityFile('jeton', 42, async () => ({ ok: false, status: 404, text: async () => '' }))
-    expect(missing).toEqual({ error: 'not_found' })
-    const rejected = await fetchActivityFile('jeton', 42, async () => ({ ok: false, status: 401, text: async () => '' }))
-    expect(rejected).toEqual({ error: 'garmin_key_rejected' })
+    expect(missing).toEqual({ error: 'refused', reason: 'HTTP 404' })
+    // Le jeton vient de lire la liste : un refus ici vise le fichier, il est noté et pas retenté à chaque passage.
+    const rejected = await fetchActivityFile('jeton', 42, async () => ({ ok: false, status: 403, text: async () => '' }))
+    expect(rejected).toEqual({ error: 'refused', reason: 'HTTP 403' })
+    const down = await fetchActivityFile('jeton', 42, async () => ({ ok: false, status: 503, text: async () => '' }))
+    expect(down).toEqual({ error: 'garmin_unavailable', reason: 'HTTP 503' })
+    const offline = await fetchActivityFile('jeton', 42, async () => {
+      throw new Error('connexion refusée')
+    })
+    expect(offline).toEqual({ error: 'garmin_unavailable', reason: 'réseau : connexion refusée' })
   })
 })

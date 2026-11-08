@@ -174,7 +174,7 @@ export type ActivityDetailState =
   /** Pas encore lu : arrivera avec un prochain passage de l'import automatique. */
   | { state: 'pending' }
   /** Garmin n'a pas de fichier, ou il est illisible. */
-  | { state: 'missing'; status: Exclude<GarminActivityDetailRow['status'], 'ok'> }
+  | { state: 'missing'; status: Exclude<GarminActivityDetailRow['status'], 'ok'>; error: string | null }
 
 /** Détail (.FIT) d'une activité : courbes, tours, chiffres de la montre. */
 export function useActivityDetail(activityId: string | null) {
@@ -193,7 +193,7 @@ export function useActivityDetail(activityId: string | null) {
       if (error) throw error
       if (!data) return { state: 'pending' }
       if (data.status === 'ok' && isActivityDetail(data.data)) return { state: 'ok', detail: data.data, fetchedAt: data.fetched_at }
-      return { state: 'missing', status: data.status === 'ok' ? 'unreadable' : data.status }
+      return { state: 'missing', status: data.status === 'ok' ? 'unreadable' : data.status, error: data.error ?? null }
     },
   })
 }

@@ -265,3 +265,27 @@ describe('détail des activités (fichiers .FIT)', () => {
     await expectPgError(saveDetail('00000000-0000-0000-0000-000000000000'), FOREIGN_KEY)
   })
 })
+
+describe('diagnostic des fichiers .FIT (0.5.1)', () => {
+  it("garde la raison d'un échec, sur l'activité et dans le journal", async () => {
+    const { coachId, athleteId } = await setup()
+    const [activity] = await importActivity(athleteId, null)
+    await db.query(`insert into public.garmin_activity_details (activity_id, status, error) values ($1, 'no_file', 'HTTP 403')`, [
+      activity.id,
+    ])
+    await db.query(`insert into public.garmin_sync_runs (athlete_id, status, detail_error) values ($1, 'ok', 'HTTP 403')`, [athleteId])
+    const sql = 'select error from public.garmin_activity_details where activity_id = $1'
+    expect(await queryAs(db, coachId, sql, [activity.id])).toEqual([{ error: 'HTTP 403' }])
+    const runs = await queryAs<{ detail_error: string }>(
+      db,
+      athleteId,
+      'select detail_error from public.garmin_sync_runs where athlete_id = $1',
+      [athleteId],
+    )
+    expect(runs).toEqual([{ detail_error: 'HTTP 403' }])
+    await expectPgError(
+      db.query(`insert into public.garmin_sync_runs (athlete_id, status, detail_error) values ($1, 'ok', $2)`, [athleteId, 'x'.repeat(301)]),
+      CHECK_VIOLATION,
+    )
+  })
+})

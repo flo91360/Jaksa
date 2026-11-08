@@ -43,12 +43,16 @@ export type ImportResult =
   | { status: 200; body: { activities: GarminSummary[] } }
   | { status: 400 | 403 | 502 | 503; body: { error: ImportError } }
 
-export type Fetch = (url: string, init?: { method?: string; headers?: Record<string, string> }) => Promise<{
+export type Fetch = (
+  url: string,
+  init?: { method?: string; headers?: Record<string, string> },
+) => Promise<{
   ok: boolean
   status: number
   text: () => Promise<string>
   /** Pour le téléchargement des fichiers .FIT. */
   arrayBuffer?: () => Promise<ArrayBuffer>
+  headers?: { get: (name: string) => string | null }
 }>
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -139,9 +143,7 @@ export async function fetchGarminActivities(
     if (!listResponse.ok) return { error: 'garmin_unavailable' }
     const text = await listResponse.text()
     const list: unknown = text ? JSON.parse(text) : []
-    const activities = (Array.isArray(list) ? list : [])
-      .map(pickSummary)
-      .filter((a): a is GarminSummary => a !== null)
+    const activities = (Array.isArray(list) ? list : []).map(pickSummary).filter((a): a is GarminSummary => a !== null)
     return { activities, token }
   } catch {
     return { error: 'garmin_unavailable' }
@@ -151,22 +153,33 @@ export async function fetchGarminActivities(
 /** Taille maximale d'une archive téléchargée (une sortie de 24 h fait quelques Mo). */
 const MAX_FILE_BYTES = 20 * 1024 * 1024
 
-export type FileResult = { bytes: Uint8Array } | { error: 'not_found' | 'garmin_key_rejected' | 'garmin_unavailable' }
+/**
+ * Fichier d'une activité, ou la raison de l'échec (« HTTP 403 », « réseau »…), enregistrée pour le diagnostic :
+ * - `refused` : Garmin refuse ce fichier (erreur 4xx) ; inutile de réessayer à chaque passage ;
+ * - `garmin_unavailable` : panne passagère (5xx, trop de demandes, réseau) ; nouvel essai au prochain passage.
+ */
+export type FileResult = { bytes: Uint8Array; contentType: string } | { error: 'refused' | 'garmin_unavailable'; reason: string }
 
 /** Télécharge le fichier d'origine d'une activité (archive ZIP contenant le .FIT). */
 export async function fetchActivityFile(token: string, activityId: number, fetchImpl: Fetch): Promise<FileResult> {
   try {
     const response = await fetchImpl(`${GARMIN_BASE}${FILE_PATH}${activityId}`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/zip, application/octet-stream' },
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/zip, application/octet-stream, */*' },
     })
-    if (response.status === 401 || response.status === 403) return { error: 'garmin_key_rejected' }
-    if (response.status === 404) return { error: 'not_found' }
-    if (!response.ok || !response.arrayBuffer) return { error: 'garmin_unavailable' }
+    const reason = `HTTP ${response.status}`
+    if (response.status === 429 || response.status >= 500) return { error: 'garmin_unavailable', reason }
+    // Le jeton vient de servir à lire la liste : un 401 ou un 403 ici vise ce fichier, pas la clé.
+    if (!response.ok) return { error: 'refused', reason }
+    if (!response.arrayBuffer) return { error: 'garmin_unavailable', reason: 'réponse illisible' }
     const buffer = await response.arrayBuffer()
-    if (buffer.byteLength === 0 || buffer.byteLength > MAX_FILE_BYTES) return { error: 'not_found' }
-    return { bytes: new Uint8Array(buffer) }
-  } catch {
-    return { error: 'garmin_unavailable' }
+    if (buffer.byteLength === 0) return { error: 'refused', reason: `${reason}, réponse vide` }
+    if (buffer.byteLength > MAX_FILE_BYTES) return { error: 'refused', reason: `fichier trop gros (${buffer.byteLength} octets)` }
+    return { bytes: new Uint8Array(buffer), contentType: response.headers?.get('content-type') ?? '' }
+  } catch (error) {
+    return {
+      error: 'garmin_unavailable',
+      reason: `réseau : ${error instanceof Error ? error.message : String(error)}`.slice(0, 200),
+    }
   }
 }
 

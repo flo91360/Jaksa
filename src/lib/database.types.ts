@@ -249,6 +249,8 @@ export type Database = {
           status: 'ok' | 'no_file' | 'unreadable'
           /** Présent quand status = 'ok' ; à relire avec isActivityDetail. */
           data: ActivityDetail | null
+          /** Raison d'un échec (« HTTP 403 »…), pour le diagnostic (0.5.1). */
+          error: string | null
           fetched_at: string
         }
         Insert: never
@@ -265,6 +267,8 @@ export type Database = {
           linked: number
           /** Fichiers .FIT lus pendant ce passage (0.5.0). */
           details: number
+          /** Premier échec de lecture d'un .FIT pendant ce passage (0.5.1). */
+          detail_error: string | null
         }
         Insert: never
         Update: never

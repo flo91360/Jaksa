@@ -94,9 +94,14 @@ export function ActivityDetailView({
         </>
       ) : (
         <Alert tone="info">
-          {query.data?.state === 'missing'
-            ? 'Garmin n’a pas fourni le fichier détaillé de cette activité : seuls les chiffres ci-dessus sont disponibles.'
-            : 'Les courbes, les zones et les tours arrivent avec le prochain import automatique (toutes les 15 minutes) pour les activités des 14 derniers jours.'}
+          {query.data?.state === 'missing' ? (
+            <>
+              Garmin n’a pas fourni le fichier détaillé de cette activité : seuls les chiffres ci-dessus sont disponibles.
+              {query.data.error && <span className="mt-1 block text-xs opacity-75">Raison : {query.data.error}</span>}
+            </>
+          ) : (
+            'Les courbes, les zones et les tours arrivent avec le prochain import automatique (toutes les 15 minutes) pour les activités des 14 derniers jours.'
+          )}
         </Alert>
       )}
     </div>
