@@ -1,0 +1,10 @@
+// Déploiement sur Cloudflare (Workers, fichiers statiques) : voir docs/DEPLOIEMENT.md.
+{
+  "name": "rob1coach",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    // Application monopage : toute URL inconnue renvoie index.html.
+    "not_found_handling": "single-page-application"
+  }
+}

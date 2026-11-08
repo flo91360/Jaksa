@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "oxc", "vitest"],
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    "react/only-export-components": ["warn", { "allowConstantExport": true }],
+    "vitest/expect-expect": ["warn", { "assertFunctionNames": ["expect", "expectPgError"] }]
+  },
+  "ignorePatterns": ["dist", "node_modules"]
+}
