@@ -1,5 +1,19 @@
 # Journal des versions
 
+## [0.4.0] - 2026-11-08
+
+Garmin, première étape : l'import des activités, pour un compte de test.
+
+- **Import des activités Garmin** des 14 derniers jours, avec la clé d'API personnelle Garmin (niveau « Personal ») :
+  - bouton dans **Mon compte** → **Montre Garmin (essai)**, puis import automatique à l'ouverture de l'accueil (au plus toutes les 30 minutes) ;
+  - réservé pour l'instant au compte désigné dans Supabase : la clé Garmin ne donne accès qu'aux données de son propriétaire.
+- **Rattachement** de chaque activité à la séance prévue le même jour et du même sport (biquotidien compris).
+- **Sous la séance**, pour l'athlète et son coach : durée, distance, allure moyenne, FC moyenne et max, D+ mesurés par la montre.
+- **Retour de séance** pré-rempli avec ce qu'a mesuré la montre.
+- **Accueil de l'athlète** : carte « Ta montre » avec les dernières activités.
+- Mise en route (migration, clé, secrets, fonction Supabase) : `docs/DEPLOIEMENT.md`, étape 8.
+- L'envoi des séances sur la montre attend toujours l'accès Starter de Garmin.
+
 ## [0.3.0] - 2026-11-08
 
 Les échanges et les retours.

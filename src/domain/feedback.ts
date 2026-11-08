@@ -95,16 +95,44 @@ export type FeedbackDraft = {
 export type FeedbackErrors = Partial<Record<'duration' | 'km' | 'elevation' | 'rpe' | 'pain', string>>
 
 /** Brouillon pré-rempli : le retour existant, sinon les estimations de la séance prévue. */
-export function feedbackToDraft(feedback: Feedback | null, planned?: WorkoutTotals): FeedbackDraft {
-  const seconds = feedback ? feedback.duration_s : planned && planned.seconds > 0 ? planned.seconds : null
-  const meters = feedback ? feedback.distance_m : planned && planned.meters > 0 ? planned.meters : null
+/** Valeurs mesurées par la montre (activité Garmin rattachée à la séance). */
+export type MeasuredActivity = {
+  duration_s: number | null
+  distance_m: number | null
+  elevation_gain_m: number | null
+}
+
+/**
+ * Formulaire de retour : le retour déjà saisi, sinon ce qu'a mesuré la montre, sinon
+ * l'estimation de la séance prévue.
+ */
+export function feedbackToDraft(
+  feedback: Feedback | null,
+  planned?: WorkoutTotals,
+  measured?: MeasuredActivity | null,
+): FeedbackDraft {
+  const seconds = feedback
+    ? feedback.duration_s
+    : measured?.duration_s
+      ? measured.duration_s
+      : planned && planned.seconds > 0
+        ? planned.seconds
+        : null
+  const meters = feedback
+    ? feedback.distance_m
+    : measured?.distance_m
+      ? measured.distance_m
+      : planned && planned.meters > 0
+        ? planned.meters
+        : null
+  const elevation = feedback ? feedback.elevation_gain_m : (measured?.elevation_gain_m ?? null)
   const minutesTotal = seconds === null ? null : Math.round(seconds / 60)
   return {
     status: feedback?.status ?? 'done',
     hours: minutesTotal === null ? '' : String(Math.floor(minutesTotal / 60)),
     minutes: minutesTotal === null ? '' : String(minutesTotal % 60),
     km: meters === null ? '' : String(Math.round(meters / 10) / 100).replace('.', ','),
-    elevation: feedback?.elevation_gain_m == null ? '' : String(feedback.elevation_gain_m),
+    elevation: elevation == null ? '' : String(elevation),
     rpe: feedback?.rpe ?? null,
     pain: feedback?.pain ?? [],
   }

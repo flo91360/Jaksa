@@ -8,6 +8,7 @@ import { useMyProfile } from '../../api/profile.ts'
 import { useUserId } from '../../auth/auth-context.ts'
 import { PriorityBadge } from '../../components/RaceEditor.tsx'
 import { WorkoutExchanges } from '../../components/exchanges/WorkoutExchanges.tsx'
+import { RecentGarminCard } from '../../components/garmin/Garmin.tsx'
 import { FEEDBACK_STATUS } from '../../domain/feedback.ts'
 import { Alert, Card, EmptyState, LoadingBlock, PageHeader } from '../../components/ui.tsx'
 import { FitExport, WorkoutView } from '../../components/workout/WorkoutView.tsx'
@@ -95,6 +96,8 @@ export function TodayPage() {
         </div>
 
         <div className="space-y-6">
+          <RecentGarminCard athleteId={athleteId} />
+
           {race && (
             <Card title="Prochain objectif">
               <div className="flex items-start gap-3">

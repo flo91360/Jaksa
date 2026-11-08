@@ -3,6 +3,7 @@
  * `supabase gen types typescript`. À tenir à jour avec supabase/migrations.
  */
 import type { FeedbackStatus, Pain } from '../domain/feedback.ts'
+import type { GarminActivityValues } from '../domain/garmin.ts'
 import type { RacePriority } from '../domain/planning.ts'
 import type { WorkoutItem, WorkoutKind } from '../domain/workouts.ts'
 import type { HrZone } from '../domain/zones.ts'
@@ -226,6 +227,19 @@ export type Database = {
         }
         Relationships: []
       }
+      garmin_activities: {
+        Row: Omit<GarminActivityValues, 'garmin_activity_id'> & {
+          id: string
+          athlete_id: string
+          /** bigint : PostgREST le renvoie en nombre (les identifiants Garmin restent sous 2^53). */
+          garmin_activity_id: number
+          workout_id: string | null
+          imported_at: string
+        }
+        Insert: GarminActivityValues & { workout_id?: string | null }
+        Update: Partial<GarminActivityValues> & { workout_id?: string | null }
+        Relationships: []
+      }
       workout_comments: {
         Row: {
           id: string
@@ -346,3 +360,5 @@ export type WorkoutComment = PublicSchema['Tables']['workout_comments']['Row']
 export type Message = PublicSchema['Tables']['messages']['Row']
 export type WorkoutActivity = PublicSchema['Views']['workout_activity']['Row']
 export type Conversation = PublicSchema['Views']['conversations']['Row']
+export type GarminActivity = PublicSchema['Tables']['garmin_activities']['Row']
+export type GarminActivityInsert = PublicSchema['Tables']['garmin_activities']['Insert']
