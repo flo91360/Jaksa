@@ -1,5 +1,12 @@
 # Journal des versions
 
+## [0.5.2] - 2026-11-08
+
+- **Courbes plus lisibles** : l'échelle de la FC, de l'allure, de la cadence et de la puissance ne tient plus compte du premier kilomètre (mise en route) ni des valeurs extrêmes. Le reste de la sortie se lit beaucoup plus finement ; les premières centaines de mètres peuvent sortir du cadre.
+- **Moyenne sur chaque courbe** : un trait horizontal en pointillé, avec sa valeur (« moy. 161 bpm »).
+- **Cadence** : les arrêts (cadence à 0) ne tirent plus la courbe jusqu'en bas.
+- **D−** : il vient désormais, comme le D+, du résumé corrigé par Garmin. Le D− brut de la montre donnait des valeurs aberrantes (186 m de D− pour 17 m de D+). Les activités déjà importées le reçoivent au prochain import automatique.
+
 ## [0.5.1] - 2026-11-08
 
 - **Courbes Garmin, diagnostic** : quand Garmin ne fournit pas le fichier `.FIT` d'une activité, l'import automatique note pourquoi (« HTTP 403 », réponse qui n'est pas un fichier `.FIT`…) au lieu de réessayer en silence. La raison s'affiche sous la séance et dans le journal des imports (`garmin_sync_runs.detail_error`).
