@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { GARMIN_BASE, handleImport, parseRange, pickSummary } from '../../supabase/functions/garmin-import/garmin.ts'
+import { GARMIN_BASE, handleImport, parseRange, pickSummary } from '../../supabase/functions/_shared/garmin-api.ts'
 
 const TOKEN = 'eyJhbGciOiJSUzI1NiJ9.eyJleHAiOjE3OTAwMDAwMDB9.c2lnbmF0dXJl'
 

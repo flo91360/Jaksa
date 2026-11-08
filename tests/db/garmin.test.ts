@@ -156,3 +156,40 @@ describe('activités Garmin', () => {
     )
   })
 })
+
+describe('journal de l’import automatique', () => {
+  const logRun = (athleteId: string | null, ranAt = 'now()') =>
+    db.query(
+      `insert into public.garmin_sync_runs (athlete_id, ran_at, status, imported, linked) values ($1, ${ranAt}, 'ok', 3, 2)`,
+      [athleteId],
+    )
+
+  it("l'athlète lit ses passages ; ni son coach, ni un autre athlète, ni un visiteur", async () => {
+    const { coachId, athleteId } = await setup()
+    await logRun(athleteId)
+    const other = await createUser(db, { fullName: 'Paul Autre', invitationToken: await createInvitation(db, coachId) })
+    const sql = 'select imported, linked from public.garmin_sync_runs where athlete_id = $1'
+    expect(await queryAs(db, athleteId, sql, [athleteId])).toEqual([{ imported: 3, linked: 2 }])
+    expect(await queryAs(db, coachId, sql, [athleteId])).toEqual([])
+    expect(await queryAs(db, other, sql, [athleteId])).toEqual([])
+    await expectPgError(queryAs(db, null, sql, [athleteId]), PERMISSION_DENIED)
+  })
+
+  it("personne n'écrit dans le journal depuis le site", async () => {
+    const { athleteId } = await setup()
+    await expectPgError(
+      queryAs(db, athleteId, `insert into public.garmin_sync_runs (athlete_id, status) values ($1, 'ok')`, [athleteId]),
+      PERMISSION_DENIED,
+    )
+  })
+
+  it('ne garde qu’un mois de journal', async () => {
+    const { athleteId } = await setup()
+    await logRun(athleteId, "now() - interval '40 days'")
+    await logRun(athleteId)
+    const { rows } = await db.query<{ old: number }>(
+      `select count(*)::int as old from public.garmin_sync_runs where ran_at < now() - interval '31 days'`,
+    )
+    expect(rows[0].old).toBe(0)
+  })
+})

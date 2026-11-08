@@ -59,3 +59,16 @@ if [ -z "$ref" ]; then
   exit 1
 fi
 supabase functions deploy --remote="$ref" --use-api --yes
+
+# 4. Import Garmin automatique : toutes les 15 minutes, pg_cron appelle la fonction garmin-sync
+#    (docs/DEPLOIEMENT.md, étape 8). Relancer cette étape met simplement la tâche à jour.
+psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -q -v url="https://${ref}.supabase.co/functions/v1/garmin-sync" <<'SQL'
+create extension if not exists pg_net;
+create extension if not exists pg_cron;
+select format(
+  'select net.http_post(url := %L, body := %L::jsonb, headers := %L::jsonb, timeout_milliseconds := 30000)',
+  :'url', '{}', '{"Content-Type": "application/json"}'
+) as commande \gset
+select cron.schedule('rob1coach-garmin-import', '*/15 * * * *', :'commande');
+SQL
+echo "Import Garmin automatique planifié toutes les 15 minutes."

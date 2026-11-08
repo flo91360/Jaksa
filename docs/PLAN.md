@@ -66,6 +66,7 @@ avec le niveau Personal, sur le seul compte Garmin de Florian (voir « Garmin : 
   rattachées à la séance prévue le même jour ; la lecture des fichiers `.FIT` (tours, courbe de FC)
   viendra avec le calcul de charge de la 0.5.0 ;
 - affichage de ces données sous la séance, pour l'athlète et son coach, et pré-remplissage du retour ;
+- import automatique toutes les 15 minutes (0.4.1), puisque ce niveau ne prévient pas à chaque synchronisation ;
 - but : valider le rattachement aux séances et l'affichage, qui resteront
   valables au niveau Starter. La récupération des données sera à refaire, car le
   Starter envoie les données au site au lieu de les laisser lire à la demande ;

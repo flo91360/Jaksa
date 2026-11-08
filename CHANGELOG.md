@@ -1,5 +1,12 @@
 # Journal des versions
 
+## [0.4.1] - 2026-11-08
+
+- **Import Garmin automatique** : toutes les 15 minutes, Supabase va chercher les nouvelles activités du compte de test chez Garmin et les rattache aux séances, sans que l'athlète ait à ouvrir le site. Le coach les voit donc aussitôt.
+- La carte « Ta montre » indique l'heure du dernier import automatique, et prévient si Garmin refuse la clé (clé expirée).
+- Le bouton « Importer mes activités Garmin » reste disponible pour ne pas attendre le prochain passage.
+- Garmin ne prévient pas le site quand une montre se synchronise avec la clé personnelle : ce sera possible avec l'accès Starter.
+
 ## [0.4.0] - 2026-11-08
 
 Garmin, première étape : l'import des activités, pour un compte de test.

@@ -49,6 +49,7 @@ chaque requête est faite au nom de l'utilisateur connecté, et les règles RLS
 | `workout_activity` (vue, 0.3.0) | Par séance : retour, nombre de commentaires et de non-lus (calendrier, liste « À voir ») |
 | `conversations` (vue, 0.3.0) | Par lien coach ↔ athlète : dernier message, nombre de non-lus |
 | `email_outbox` (0.3.0) | File d'attente des e-mails, inaccessible depuis le site |
+| `garmin_sync_runs` (0.4.1) | Journal de l'import automatique : heure, résultat, nombre d'activités (un mois) |
 | `garmin_activities` (0.4.0) | Activités importées depuis Garmin : identifiant Garmin, séance rattachée, durée, distance, D+, FC moyenne et max |
 
 Zones (`athlete_profiles.zones`) : tableau de 7 zones au plus, chacune de la forme
@@ -132,6 +133,15 @@ Site (athlète connecté) ──► fonction Supabase garmin-import ──► AP
        puis l'enregistre dans garmin_activities en son nom (RLS)
 ```
 
+- **Import automatique (0.4.1)** : toutes les 15 minutes, une tâche `pg_cron` appelle la fonction `garmin-sync`, qui
+  fait le même travail sans session d'utilisateur (rôle service) et note chaque passage dans `garmin_sync_runs`. Elle
+  est déployée sans vérification de jeton (`supabase/config.toml`) : elle ne renvoie que des compteurs, n'écrit que
+  dans le compte de `GARMIN_ATHLETE_EMAIL` et n'interroge Garmin qu'une fois toutes les 5 minutes au plus. La tâche
+  `pg_cron` est installée par le déploiement automatique, qui connaît l'adresse du projet.
+- Le niveau « Personal » ne prévient pas quand une montre se synchronise : il faut aller chercher. Le niveau Starter
+  enverra une notification à chaque activité, ce qui remplacera la tâche planifiée.
+- La conversion et le rattachement (`supabase/functions/_shared/garmin-match.ts`) sont partagés par le site et la
+  fonction, et testés dans `src/domain/garmin.test.ts`.
 - La clé Garmin n'est connue que de la fonction (secret Supabase) ; le jeton d'accès n'est jamais stocké.
 - Rattachement : même jour (heure locale de la montre), sport compatible (une sortie course ou trail va sur une séance
   de course ou de trail, le vélo sur « autre sport »), une activité par séance, dans l'ordre de la journée. Un

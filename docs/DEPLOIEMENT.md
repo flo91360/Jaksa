@@ -255,12 +255,18 @@ Compter 15 minutes.
    - `GARMIN_PERSONAL_API_KEY` : la clé Garmin ;
    - `GARMIN_ATHLETE_EMAIL` : l'adresse e-mail du compte **athlète** Rob1Coach qui recevra ces activités. La
      fonction refuse tout autre compte, coach compris.
-3. **Déployer la fonction** `garmin-import` : c'est automatique (étape 4). Pour la redéployer sans attendre une
+3. **Déployer les fonctions** `garmin-import` (import à la demande) et `garmin-sync` (import automatique toutes les
+   15 minutes, avec sa tâche `pg_cron` `rob1coach-garmin-import`) : c'est automatique (étape 4). Pour la redéployer sans attendre une
    fusion : **Actions** → **Déploiement Supabase** → **Run workflow**.
 4. **Essayer** : se connecter sur le site avec le compte athlète choisi, **Mon compte** → **Montre Garmin (essai)**
    → **Importer mes activités Garmin**. Les activités des 14 derniers jours apparaissent ensuite sous la séance prévue
    le même jour, et dans la carte **Ta montre** de l'accueil, qui relance l'import toute seule à l'ouverture (au plus
    toutes les 30 minutes).
+
+Ensuite, l'import se fait tout seul toutes les 15 minutes : une sortie synchronisée avec Garmin Connect apparaît sur
+le site au plus tard un quart d'heure après, pour l'athlète comme pour le coach. Pour vérifier : **Integrations** →
+**Cron** → `rob1coach-garmin-import`, ou dans le SQL Editor
+`select * from public.garmin_sync_runs order by ran_at desc limit 10;`.
 
 Garmin prévient par e-mail une semaine avant l'expiration de la clé. Pour la renouveler : créer une nouvelle clé
 (étape 1) et remplacer `GARMIN_PERSONAL_API_KEY` (étape 2). Pour tout arrêter : supprimer la clé dans Garmin Connect,

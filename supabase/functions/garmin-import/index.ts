@@ -6,7 +6,7 @@
 //   GARMIN_ATHLETE_EMAIL    : l'adresse du compte Rob1Coach autorisé à lire ces activités.
 // SUPABASE_URL et SUPABASE_ANON_KEY sont fournis par Supabase.
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { handleImport } from './garmin.ts'
+import { handleImport } from '../_shared/garmin-api.ts'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',

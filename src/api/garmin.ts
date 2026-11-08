@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import { todayIso } from '../domain/calendar.ts'
-import { type GarminSummary, importErrorMessage, importRange, matchActivities, summaryToActivity } from '../domain/garmin.ts'
-import type { GarminActivity, GarminActivityInsert } from '../lib/database.types.ts'
+import { type GarminSummary, importErrorMessage, importRange, planImport, summaryToActivity } from '../domain/garmin.ts'
+import type { GarminActivity, GarminActivityInsert, GarminSyncRun } from '../lib/database.types.ts'
 import { supabase } from '../lib/supabase.ts'
 
 /** Activité Garmin rattachée à une séance (la première de la journée s'il y en a plusieurs). */
@@ -52,15 +52,27 @@ export class GarminImportError extends Error {
 
 export type ImportSummary = { imported: number; linked: number }
 
-const LAST_IMPORT_KEY = 'rob1coach-garmin-dernier-import'
-
-/** Heure du dernier import réussi sur cet appareil (sert à l'import automatique). */
-export function lastGarminImport(): number {
-  return Number(window.localStorage.getItem(LAST_IMPORT_KEY) ?? 0) || 0
+/** Dernier passage de l'import automatique pour cet athlète (aucun tant qu'il n'a pas tourné). */
+export function useLastGarminSync(athleteId: string) {
+  return useQuery({
+    queryKey: ['garmin-activities', 'sync', athleteId],
+    retry: false,
+    refetchInterval: 5 * 60 * 1000,
+    queryFn: async (): Promise<GarminSyncRun | null> => {
+      const { data, error } = await supabase
+        .from('garmin_sync_runs')
+        .select('*')
+        .eq('athlete_id', athleteId)
+        .order('ran_at', { ascending: false })
+        .limit(1)
+      if (error) throw error
+      return data[0] ?? null
+    },
+  })
 }
 
 /**
- * Import des 14 derniers jours : la fonction garmin-import lit les activités chez Garmin, puis
+ * Import à la demande des 14 derniers jours (l'import automatique tourne côté Supabase) : la fonction garmin-import lit les activités chez Garmin, puis
  * le site les enregistre au nom de l'athlète, rattachées aux séances prévues.
  */
 export function useGarminImport(athleteId: string) {
@@ -100,19 +112,17 @@ export function useGarminImport(athleteId: string) {
         ])
         if (workouts.error) throw workouts.error
         if (existing.error) throw existing.error
-        const links = matchActivities(
-          values,
+        const rows: GarminActivityInsert[] = planImport(
+          data?.activities ?? [],
           workouts.data,
           new Map(existing.data.map((row) => [Number(row.garmin_activity_id), row.workout_id])),
         )
-        const rows: GarminActivityInsert[] = values.map((v) => ({ ...v, workout_id: links.get(v.garmin_activity_id) ?? null }))
         const { error: saveError } = await supabase
           .from('garmin_activities')
           .upsert(rows, { onConflict: 'athlete_id,garmin_activity_id' })
         if (saveError) throw saveError
         linked = rows.filter((row) => row.workout_id).length
       }
-      window.localStorage.setItem(LAST_IMPORT_KEY, String(Date.now()))
       return { imported: values.length, linked }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['garmin-activities'] }),
