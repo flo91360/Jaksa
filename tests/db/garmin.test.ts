@@ -37,12 +37,13 @@ const importActivity = (userId: string, workoutId: string | null, extra: { id?: 
     userId,
     `insert into public.garmin_activities
        (garmin_activity_id, workout_id, start_time, local_date, activity_type, name,
-        duration_s, distance_m, elevation_gain_m, avg_hr, max_hr)
-     values ($1, $2, '2026-11-10T07:02:00Z', '2026-11-10', 'running', 'Course à pied', $3, 10200, 85, 146, 171)
+        duration_s, distance_m, elevation_gain_m, elevation_loss_m, avg_hr, max_hr)
+     values ($1, $2, '2026-11-10T07:02:00Z', '2026-11-10', 'running', 'Course à pied', $3, 10200, 85, 84, 146, 171)
      on conflict (athlete_id, garmin_activity_id) do update set
        garmin_activity_id = excluded.garmin_activity_id,
        workout_id = excluded.workout_id,
-       duration_s = excluded.duration_s
+       duration_s = excluded.duration_s,
+       elevation_loss_m = excluded.elevation_loss_m
      returning id, athlete_id, garmin_activity_id`,
     [id, workoutId, extra.duration ?? 3125],
   )

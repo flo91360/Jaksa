@@ -32,6 +32,7 @@ export type GarminSummary = {
   movingDuration: number | null
   distance: number | null
   elevationGain: number | null
+  elevationLoss: number | null
   averageHR: number | null
   maxHR: number | null
   calories: number | null
@@ -91,6 +92,7 @@ export function pickSummary(raw: unknown): GarminSummary | null {
     movingDuration: num(a.movingDuration),
     distance: num(a.distance),
     elevationGain: num(a.elevationGain),
+    elevationLoss: num(a.elevationLoss),
     averageHR: num(a.averageHR),
     maxHR: num(a.maxHR),
     calories: num(a.calories),

@@ -1,14 +1,18 @@
-import { type KeyboardEvent, type PointerEvent, useEffect, useRef, useState } from 'react'
+import { type KeyboardEvent, type PointerEvent, useEffect, useId, useRef, useState } from 'react'
 import {
   type ActivityLap,
   type ActivitySeries,
   type Series,
+  cleanCadence,
+  focusRange,
   formatClock,
   indexAt,
   niceRange,
-  paceRange,
   paceSeries,
   segments,
+  seriesMean,
+  speedToPace,
+  warmupEnd,
 } from '../../domain/activityDetail.ts'
 import { formatPace } from '../../domain/pace.ts'
 import { formatDistance } from '../../domain/workouts.ts'
@@ -20,6 +24,8 @@ type Chart = {
   title: string
   values: Series
   range: [number, number]
+  /** Moyenne de la courbe, tracée en trait horizontal. */
+  mean: number | null
   color: string
   /** Allure : les valeurs basses (plus rapides) en haut. */
   inverted?: boolean
@@ -80,15 +86,19 @@ export function ActivityCharts({
   const { t } = series
   const duration = t.at(-1) ?? 0
 
+  // L'échelle de la FC, de l'allure et de la cadence ignore la mise en route : les premières
+  // centaines de mètres sortent du cadre, mais le reste de la sortie se lit plus finement.
+  const from = warmupEnd(series)
   const charts: Chart[] = []
   if (series.hr) {
-    const range = niceRange(series.hr, 10, 30)
+    const range = focusRange(series.hr, from, 5, 20)
     if (range)
       charts.push({
         key: 'hr',
         title: 'Fréquence cardiaque',
         values: series.hr,
         range,
+        mean: seriesMean(series.hr),
         color: '#e11d48',
         format: (v) => `${Math.round(v)} bpm`,
         bands: zones
@@ -98,13 +108,17 @@ export function ActivityCharts({
   }
   const pace = paceSeries(series, foot)
   if (pace) {
-    const range = foot ? paceRange(pace) : niceRange(pace, 5, 10)
+    const range = foot ? focusRange(pace, from, 15, 60) : focusRange(pace, from, 2, 6)
+    // Allure moyenne : distance sur temps, pas la moyenne des allures (qui pèse trop les passages lents).
+    const speed = seriesMean(series.speed ?? [])
+    const mean = speed === null ? null : foot ? speedToPace(speed) : speed * 3.6
     if (range)
       charts.push({
         key: 'pace',
         title: foot ? 'Allure' : 'Vitesse',
         values: pace,
         range,
+        mean,
         color: '#047857',
         inverted: foot,
         format: (v) => (foot ? `${formatPace(v)} /km` : `${v.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km/h`),
@@ -118,31 +132,35 @@ export function ActivityCharts({
         title: 'Altitude',
         values: series.altitude,
         range,
+        mean: null,
         color: '#57534e',
         area: true,
         format: (v) => `${Math.round(v)} m`,
       })
   }
-  if (series.cadence) {
-    const range = niceRange(series.cadence, 10, 20)
+  const cadence = series.cadence ? cleanCadence(series.cadence) : null
+  if (cadence) {
+    const range = focusRange(cadence, from, 5, 20)
     if (range)
       charts.push({
         key: 'cadence',
         title: 'Cadence',
-        values: series.cadence,
+        values: cadence,
         range,
+        mean: seriesMean(cadence),
         color: '#7c3aed',
         format: (v) => `${Math.round(v)} ${foot ? 'pas/min' : 'tr/min'}`,
       })
   }
   if (series.power) {
-    const range = niceRange(series.power, 50, 100)
+    const range = focusRange(series.power, from, 25, 100)
     if (range)
       charts.push({
         key: 'power',
         title: 'Puissance',
         values: series.power,
         range,
+        mean: seriesMean(series.power),
         color: '#b45309',
         format: (v) => `${Math.round(v)} W`,
       })
@@ -256,9 +274,12 @@ function ChartPanel({
   const plotHeight = HEIGHT - MARGIN.top
   const [low, high] = chart.range
   const y = (v: number) => {
-    const ratio = (Math.min(high, Math.max(low, v)) - low) / Math.max(1e-9, high - low)
+    const ratio = (v - low) / Math.max(1e-9, high - low)
     return MARGIN.top + (chart.inverted ? ratio : 1 - ratio) * plotHeight
   }
+  /** Même chose, ramené dans le cadre (zones de FC, point du curseur). */
+  const yIn = (v: number) => y(Math.min(high, Math.max(low, v)))
+  const clipId = useId()
   const parts = segments(t, chart.values)
   const line = parts
     .map((part) => part.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(p.t).toFixed(1)} ${y(p.v).toFixed(1)}`).join(' '))
@@ -282,8 +303,8 @@ function ChartPanel({
       <figcaption className="px-1 text-xs font-semibold text-slate-700">{chart.title}</figcaption>
       <svg width={width} height={height} className="block touch-pan-y select-none" aria-hidden="true">
         {chart.bands?.map((band) => {
-          const top = Math.min(y(band.from), y(band.to))
-          const bandHeight = Math.abs(y(band.to) - y(band.from))
+          const top = Math.min(yIn(band.from), yIn(band.to))
+          const bandHeight = Math.abs(yIn(band.to) - yIn(band.from))
           return bandHeight > 0.5 ? (
             <rect
               key={band.from}
@@ -316,8 +337,38 @@ function ChartPanel({
             strokeDasharray="2 3"
           />
         ))}
-        {area && <path d={area} fill={chart.color} opacity={0.14} />}
-        <path d={line} fill="none" stroke={chart.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+        <clipPath id={clipId}>
+          <rect x={MARGIN.left} y={MARGIN.top - 1} width={Math.max(0, right - MARGIN.left)} height={plotHeight + 2} />
+        </clipPath>
+        <g clipPath={`url(#${clipId})`}>
+          {area && <path d={area} fill={chart.color} opacity={0.14} />}
+          <path d={line} fill="none" stroke={chart.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+        </g>
+        {chart.mean !== null && chart.mean >= low && chart.mean <= high && (
+          <g>
+            <line
+              x1={MARGIN.left}
+              x2={right}
+              y1={y(chart.mean)}
+              y2={y(chart.mean)}
+              stroke="#0f172a"
+              strokeWidth={1}
+              strokeDasharray="6 4"
+              opacity={0.55}
+            />
+            <text
+              x={right - 4}
+              y={y(chart.mean) - 4}
+              textAnchor="end"
+              className="fill-slate-800 text-[10px] font-semibold tabular-nums"
+              stroke="#fff"
+              strokeWidth={3}
+              paintOrder="stroke"
+            >
+              moy. {chart.format(chart.mean)}
+            </text>
+          </g>
+        )}
         {showTime &&
           timeTicks(duration, width).map((tick) => (
             <text key={tick} x={x(tick)} y={height - 5} textAnchor="middle" className="fill-slate-500 text-[10px] tabular-nums">
@@ -328,7 +379,7 @@ function ChartPanel({
           <>
             <line x1={x(t[hover])} x2={x(t[hover])} y1={MARGIN.top} y2={bottom} stroke="#0f172a" strokeWidth={1} opacity={0.5} />
             {hoverValue !== null && hoverValue !== undefined && (
-              <circle cx={x(t[hover])} cy={y(hoverValue)} r={4} fill={chart.color} stroke="#fff" strokeWidth={2} />
+              <circle cx={x(t[hover])} cy={yIn(hoverValue)} r={4} fill={chart.color} stroke="#fff" strokeWidth={2} />
             )}
           </>
         )}

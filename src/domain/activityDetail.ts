@@ -129,13 +129,64 @@ export function niceRange(values: Series, step: number, minSpan = step): [number
   return [low, high]
 }
 
-/** Écart des valeurs d'une allure à exclure des bornes : les arrêts et les pointes du GPS. */
-export function paceRange(values: Series): [number, number] | null {
-  const known = values.filter((v): v is number => v !== null).sort((a, b) => a - b)
-  if (known.length === 0) return null
-  const low = known[Math.floor(known.length * 0.01)]
+/**
+ * Cadence sans les arrêts : la montre note 0 (ou presque) quand on s'arrête, ce qui tirait la
+ * courbe jusqu'en bas. Les valeurs sous la moitié de la cadence médiane sont écartées.
+ */
+export function cleanCadence(values: Series): Series {
+  const known = values.filter((v): v is number => v !== null && v > 0).sort((a, b) => a - b)
+  if (known.length === 0) return values.map(() => null)
+  const floor = known[Math.floor(known.length / 2)] / 2
+  return values.map((v) => (v === null || v < floor ? null : v))
+}
+
+/** Moyenne des valeurs connues d'une courbe (trait horizontal des graphiques). */
+export function seriesMean(values: Series): number | null {
+  let sum = 0
+  let count = 0
+  for (const v of values) {
+    if (v === null) continue
+    sum += v
+    count++
+  }
+  return count === 0 ? null : sum / count
+}
+
+/** Distance (m) ou durée (s) d'échauffement écartée du calcul de l'échelle des graphiques. */
+export const WARMUP_DISTANCE_M = 1000
+export const WARMUP_SHARE = 0.15
+
+/**
+ * Indice du premier point après la mise en route (le premier kilomètre, ou 15 % de la durée
+ * sans distance) : la FC qui monte, l'allure et la cadence des premiers mètres ne sont pas
+ * représentatives et écrasaient l'échelle. Rien n'est écarté sur une sortie trop courte.
+ */
+export function warmupEnd(series: Pick<ActivitySeries, 't' | 'distance'>): number {
+  const { t, distance } = series
+  const total = distance ? Math.max(0, ...distance.filter((d): d is number => d !== null)) : 0
+  let index = -1
+  if (total >= 3 * WARMUP_DISTANCE_M && distance) {
+    index = distance.findIndex((d) => d !== null && d >= WARMUP_DISTANCE_M)
+  } else if (!distance || total === 0) {
+    const limit = (t.at(-1) ?? 0) * WARMUP_SHARE
+    index = t.findIndex((time) => time >= limit)
+  }
+  return index > 0 && index < t.length * 0.5 ? index : 0
+}
+
+/**
+ * Échelle resserrée sur l'essentiel de la courbe : après la mise en route, sans les 2 % de
+ * valeurs extrêmes de chaque côté (arrêts, pointes du capteur). Ce qui dépasse sort du cadre.
+ */
+export function focusRange(values: Series, from: number, step: number, minSpan = step): [number, number] | null {
+  const known = values
+    .slice(from)
+    .filter((v): v is number => v !== null)
+    .sort((a, b) => a - b)
+  if (known.length === 0) return from > 0 ? focusRange(values, 0, step, minSpan) : null
+  const low = known[Math.floor(known.length * 0.02)]
   const high = known[Math.min(known.length - 1, Math.floor(known.length * 0.98))]
-  return niceRange([low, high], 30, 60)
+  return niceRange([low, high], step, minSpan)
 }
 
 /** Valeur d'une série au temps `t` (le point le plus proche), pour le curseur des graphiques. */
@@ -205,6 +256,8 @@ type SummaryLike = {
   moving_s: number | null
   distance_m: number | null
   elevation_gain_m: number | null
+  /** Absent des activités importées avant la 0.5.2. */
+  elevation_loss_m?: number | null
   avg_hr: number | null
   max_hr: number | null
   calories: number | null
@@ -241,9 +294,13 @@ export function detailFigures(activity: SummaryLike, detail: ActivityDetail | nu
   add(foot ? 'Allure max' : 'Vitesse max', formatSpeed(s?.max_speed, foot))
   add('FC moy.', (activity.avg_hr ?? s?.avg_hr) ? `${activity.avg_hr ?? s?.avg_hr} bpm` : null)
   add('FC max', (activity.max_hr ?? s?.max_hr) ? `${activity.max_hr ?? s?.max_hr} bpm` : null)
-  const ascent = activity.elevation_gain_m ?? s?.ascent_m
+  // D+ et D− de la même source : le résumé Garmin (corrigé par Garmin) s'il donne le D+,
+  // sinon le .FIT. Mêler les deux donnait 17 m de D+ pour 186 m de D− sur une sortie à plat.
+  const fromSummary = activity.elevation_gain_m !== null
+  const ascent = fromSummary ? activity.elevation_gain_m : s?.ascent_m
+  const descent = fromSummary ? activity.elevation_loss_m : s?.descent_m
   add('D+', ascent !== null && ascent !== undefined ? `${ascent} m` : null)
-  add('D−', s?.descent_m !== null && s?.descent_m !== undefined ? `${s.descent_m} m` : null)
+  add('D−', descent !== null && descent !== undefined ? `${descent} m` : null)
   if (s?.min_altitude_m !== null && s?.min_altitude_m !== undefined && s.max_altitude_m !== null) {
     add('Altitude', `${Math.round(s.min_altitude_m)}-${Math.round(s.max_altitude_m)} m`)
   }

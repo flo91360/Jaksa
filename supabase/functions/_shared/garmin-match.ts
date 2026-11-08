@@ -16,6 +16,7 @@ export type GarminActivityValues = {
   moving_s: number | null
   distance_m: number | null
   elevation_gain_m: number | null
+  elevation_loss_m: number | null
   avg_hr: number | null
   max_hr: number | null
   calories: number | null
@@ -56,6 +57,7 @@ export function summaryToActivity(summary: GarminSummary): GarminActivityValues 
     moving_s: bounded(summary.movingDuration, 1, 172_800),
     distance_m: bounded(summary.distance, 0, 1_000_000),
     elevation_gain_m: bounded(summary.elevationGain, 0, 30_000),
+    elevation_loss_m: bounded(summary.elevationLoss, 0, 30_000),
     avg_hr: bounded(summary.averageHR, 20, 250),
     max_hr: bounded(summary.maxHR, 20, 250),
     calories: bounded(summary.calories, 0, 30_000),

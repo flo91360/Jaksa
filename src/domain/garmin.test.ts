@@ -19,6 +19,7 @@ const summary = (patch: Partial<GarminSummary> = {}): GarminSummary => ({
   movingDuration: 3080.2,
   distance: 10_215.3,
   elevationGain: 85.4,
+  elevationLoss: 84.6,
   averageHR: 146,
   maxHR: 171,
   calories: 690,
@@ -37,6 +38,7 @@ describe('activités Garmin', () => {
       moving_s: 3080,
       distance_m: 10_215,
       elevation_gain_m: 85,
+      elevation_loss_m: 85,
       avg_hr: 146,
       max_hr: 171,
       calories: 690,
@@ -51,8 +53,8 @@ describe('activités Garmin', () => {
   })
 
   it('écarte les valeurs aberrantes et les activités sans heure', () => {
-    const odd = summaryToActivity(summary({ averageHR: 400, elevationGain: -3, duration: null }))
-    expect(odd).toMatchObject({ avg_hr: null, elevation_gain_m: null, duration_s: null })
+    const odd = summaryToActivity(summary({ averageHR: 400, elevationGain: -3, elevationLoss: 40_000, duration: null }))
+    expect(odd).toMatchObject({ avg_hr: null, elevation_gain_m: null, elevation_loss_m: null, duration_s: null })
     expect(summaryToActivity(summary({ startTimeLocal: null }))).toBeNull()
   })
 

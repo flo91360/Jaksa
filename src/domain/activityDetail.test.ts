@@ -3,8 +3,10 @@ import {
   type ActivityDetail,
   type ActivityLap,
   type ActivitySeries,
+  cleanCadence,
   comparePlan,
   detailFigures,
+  focusRange,
   formatClock,
   formatGap,
   indexAt,
@@ -12,9 +14,11 @@ import {
   paceSeries,
   routePath,
   segments,
+  seriesMean,
   speedToPace,
   targetVerdict,
   timeInZones,
+  warmupEnd,
 } from './activityDetail.ts'
 import { STEP_PRESETS, type WorkoutItem, newStep } from './workouts.ts'
 import type { HrZone } from './zones.ts'
@@ -183,6 +187,7 @@ describe('détail d’une activité', () => {
       moving_s: 3300,
       distance_m: 11_000,
       elevation_gain_m: 80,
+      elevation_loss_m: 79,
       avg_hr: 150,
       max_hr: 175,
       calories: 640,
@@ -194,7 +199,8 @@ describe('détail d’une activité', () => {
       Distance: '11 km',
       'Allure moy.': '5:00 /km',
       'Allure max': '3:58 /km',
-      'D−': '78 m',
+      'D+': '80 m',
+      'D−': '79 m',
       Altitude: '52-68 m',
       'Cadence moy.': '172 pas/min',
       'Effet aérobie': '3,8',
@@ -206,10 +212,68 @@ describe('détail d’une activité', () => {
     expect(detailFigures({ ...activity, activity_type: 'cycling' }, null).map((f) => f.label)).toContain('Vitesse moy.')
   })
 
+  it('prend D+ et D− de la même source', () => {
+    const detail: ActivityDetail = {
+      version: 1,
+      series: empty,
+      laps: [],
+      session: { ascent_m: 190, descent_m: 186 } as ActivityDetail['session'],
+    }
+    const activity = {
+      activity_type: 'running',
+      duration_s: 3200,
+      moving_s: 3200,
+      distance_m: 8000,
+      elevation_gain_m: 17,
+      avg_hr: null,
+      max_hr: null,
+      calories: null,
+    }
+    const figures = (a: typeof activity & { elevation_loss_m?: number | null }) =>
+      Object.fromEntries(detailFigures(a, detail).map((f) => [f.label, f.value]))
+    // Résumé Garmin : D+ et D− corrigés, jamais le D− brut du .FIT à côté.
+    expect(figures({ ...activity, elevation_loss_m: 15 })).toMatchObject({ 'D+': '17 m', 'D−': '15 m' })
+    expect(figures(activity)['D−']).toBeUndefined()
+    // Sans D+ dans le résumé : les deux viennent du .FIT.
+    expect(figures({ ...activity, elevation_gain_m: null as unknown as number })).toMatchObject({
+      'D+': '190 m',
+      'D−': '186 m',
+    })
+  })
+
   it('projette le tracé GPS dans un carré', () => {
     const route = routePath({ ...empty, t: [0, 1, 2], lat: [48.83, 48.831, 48.832], lon: [2.43, 2.431, 2.43] }, 200)
     expect(route?.d.startsWith('M')).toBe(true)
     expect(route?.start[1]).toBeGreaterThan(route?.end[1] ?? 0)
     expect(routePath({ ...empty, t: [0] }, 200)).toBeNull()
+  })
+})
+
+describe('échelle des graphiques', () => {
+  it('écarte les arrêts de la cadence', () => {
+    expect(cleanCadence([0, 172, 174, null, 176, 3, 90, 170])).toEqual([null, 172, 174, null, 176, null, 90, 170])
+    expect(cleanCadence([0, 0])).toEqual([null, null])
+  })
+
+  it('calcule la moyenne des valeurs connues', () => {
+    expect(seriesMean([150, null, 160, 170])).toBe(160)
+    expect(seriesMean([null])).toBeNull()
+  })
+
+  it('repère la fin du premier kilomètre, sauf sur une sortie courte', () => {
+    const t = Array.from({ length: 81 }, (_, i) => i * 30)
+    const distance = t.map((s) => s * 3)
+    expect(warmupEnd({ t, distance })).toBe(distance.findIndex((d) => d >= 1000))
+    expect(warmupEnd({ t: t.slice(0, 20), distance: distance.slice(0, 20) })).toBe(0)
+    // Sans distance : 15 % de la durée.
+    expect(warmupEnd({ t, distance: null })).toBe(12)
+  })
+
+  it("resserre l'échelle sur la sortie, sans la mise en route ni les pointes", () => {
+    const hr = [70, 90, 110, 130, ...Array.from({ length: 100 }, (_, i) => 155 + (i % 10)), 200]
+    expect(focusRange(hr, 4, 5, 20)).toEqual([150, 170])
+    // Sans la mise en route écartée, l'échelle descend jusqu'aux premières valeurs.
+    expect(focusRange(hr, 0, 5, 20)?.[0]).toBeLessThan(150)
+    expect(focusRange([null, null], 0, 5)).toBeNull()
   })
 })
