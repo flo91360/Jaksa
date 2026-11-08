@@ -1,5 +1,10 @@
 # Journal des versions
 
+## [0.5.1] - 2026-11-08
+
+- **Courbes Garmin, diagnostic** : quand Garmin ne fournit pas le fichier `.FIT` d'une activité, l'import automatique note pourquoi (« HTTP 403 », réponse qui n'est pas un fichier `.FIT`…) au lieu de réessayer en silence. La raison s'affiche sous la séance et dans le journal des imports (`garmin_sync_runs.detail_error`).
+- Un refus de Garmin pour un fichier n'est plus confondu avec une clé expirée : il est noté sur l'activité et redemandé au plus toutes les 6 heures.
+
 ## [0.5.0] - 2026-11-08
 
 Le détail des séances.
