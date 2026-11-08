@@ -1,0 +1,43 @@
+# Rob1Coach
+
+Application web pour un coach de course à pied et ses athlètes (semi, marathon,
+ultra-trail, reprise après blessure). Elle remplace l'essentiel de Nolio, pour un
+coût d'hébergement proche de zéro.
+
+- **Coach** : invite ses athlètes par lien, tient leur fiche (physiologie, objectifs, blessures, notes privées) et définit leurs zones de FC et les allures correspondantes.
+- **Athlète** : rejoint son coach en un clic, retrouve ses zones et complète son profil.
+- Le site fonctionne sur téléphone et sur ordinateur, et s'installe sur l'écran d'accueil.
+
+La suite (planification des séances, commentaires, messagerie, envoi sur les
+montres Garmin) est décrite dans [docs/PLAN.md](docs/PLAN.md).
+
+## Technique
+
+React + TypeScript (Vite), Tailwind CSS, React Query.
+[Supabase](https://supabase.com) (PostgreSQL, authentification, règles RLS) et
+hébergement statique sur Cloudflare.
+Détails : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Démarrer
+
+```bash
+npm install
+cp .env.example .env.local   # URL et clé publishable du projet Supabase
+npm run dev
+```
+
+La mise en ligne pas à pas (Supabase, compte coach, Cloudflare) est décrite dans
+[docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md).
+
+## Vérifier
+
+```bash
+npm run check   # lint (oxlint) + types + tests + build
+```
+
+Les tests couvrent :
+
+- la logique métier (zones, allures, formulaires) ;
+- les règles de sécurité de la base, exécutées sur un vrai PostgreSQL en mémoire (PGlite) : un coach ne voit que ses athlètes, un athlète ne voit pas les autres, etc.
+
+La CI GitHub les lance sur chaque pull request.
