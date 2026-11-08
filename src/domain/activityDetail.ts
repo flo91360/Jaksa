@@ -175,18 +175,11 @@ export function warmupEnd(series: Pick<ActivitySeries, 't' | 'distance'>): numbe
 }
 
 /**
- * Échelle resserrée sur l'essentiel de la courbe : après la mise en route, sans les 2 % de
- * valeurs extrêmes de chaque côté (arrêts, pointes du capteur). Ce qui dépasse sort du cadre.
+ * Échelle de la courbe après la mise en route : du min au max de tout le reste de la sortie.
+ * Seules les valeurs des premiers mètres qui en sortent dépassent du cadre.
  */
 export function focusRange(values: Series, from: number, step: number, minSpan = step): [number, number] | null {
-  const known = values
-    .slice(from)
-    .filter((v): v is number => v !== null)
-    .sort((a, b) => a - b)
-  if (known.length === 0) return from > 0 ? focusRange(values, 0, step, minSpan) : null
-  const low = known[Math.floor(known.length * 0.02)]
-  const high = known[Math.min(known.length - 1, Math.floor(known.length * 0.98))]
-  return niceRange([low, high], step, minSpan)
+  return niceRange(values.slice(from), step, minSpan) ?? (from > 0 ? niceRange(values, step, minSpan) : null)
 }
 
 /** Valeur d'une série au temps `t` (le point le plus proche), pour le curseur des graphiques. */
