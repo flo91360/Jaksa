@@ -1,7 +1,6 @@
-import { useEffect, useRef } from 'react'
 import { Link } from 'react-router'
 import { isMissingRelation } from '../../api/exchanges.ts'
-import { GarminImportError, lastGarminImport, useGarminImport, useRecentGarminActivities } from '../../api/garmin.ts'
+import { GarminImportError, useGarminImport, useLastGarminSync, useRecentGarminActivities } from '../../api/garmin.ts'
 import { todayIso } from '../../domain/calendar.ts'
 import { activityFigures, garminSportLabel } from '../../domain/garmin.ts'
 import { formatDayLabel, formatTime, localDay } from '../../domain/messages.ts'
@@ -43,23 +42,9 @@ export function GarminActivityCard({ activity }: { activity: GarminActivity }) {
   )
 }
 
-const AUTO_IMPORT_EVERY_MS = 30 * 60 * 1000
-
-/**
- * Bouton d'import des activités Garmin. Avec `auto`, l'import se lance tout seul à l'ouverture
- * de la page si le dernier date de plus de 30 minutes.
- */
-export function GarminImportButton({ athleteId, auto = false }: { athleteId: string; auto?: boolean }) {
+/** Bouton d'import à la demande des activités Garmin (14 derniers jours). */
+export function GarminImportButton({ athleteId }: { athleteId: string }) {
   const garminImport = useGarminImport(athleteId)
-  const started = useRef(false)
-  const { mutate } = garminImport
-  useEffect(() => {
-    if (auto && !started.current && Date.now() - lastGarminImport() > AUTO_IMPORT_EVERY_MS) {
-      started.current = true
-      mutate()
-    }
-  }, [auto, mutate])
-
   const result = garminImport.data
   return (
     <div className="space-y-2">
@@ -95,7 +80,8 @@ export function RecentGarminCard({ athleteId }: { athleteId: string }) {
           </li>
         ))}
       </ul>
-      <GarminImportButton athleteId={athleteId} auto />
+      <LastSync athleteId={athleteId} />
+      <GarminImportButton athleteId={athleteId} />
     </Card>
   )
 }
@@ -121,5 +107,28 @@ function RecentActivity({ activity }: { activity: GarminActivity }) {
     </Link>
   ) : (
     content
+  )
+}
+
+/** « Import automatique toutes les 15 minutes, dernier à 18:45 », ou le problème rencontré. */
+function LastSync({ athleteId }: { athleteId: string }) {
+  const last = useLastGarminSync(athleteId)
+  if (isMissingRelation(last.error) || !last.data) return null
+  const when = `${formatDayLabel(localDay(last.data.ran_at), todayIso()).toLowerCase()} à ${formatTime(last.data.ran_at)}`
+  if (last.data.status === 'garmin_key_rejected') {
+    return (
+      <div className="mb-3">
+        <Alert tone="warning">
+          L’import automatique est arrêté depuis {when} : Garmin refuse la clé, elle a sans doute expiré. Crée-en une
+          nouvelle dans Garmin Connect et remplace-la dans Supabase.
+        </Alert>
+      </div>
+    )
+  }
+  return (
+    <p className="mb-3 text-xs text-slate-500">
+      Import automatique toutes les 15 minutes · dernier passage {when}
+      {last.data.status === 'ok' ? '' : ' (Garmin ne répondait pas, nouvel essai au prochain passage)'}
+    </p>
   )
 }

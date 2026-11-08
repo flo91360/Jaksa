@@ -1,4 +1,5 @@
-// Cœur de la fonction garmin-import, sans dépendance : testé par tests/functions/garmin-import.test.ts.
+// Lecture des activités chez Garmin, sans dépendance (fonctions garmin-import et garmin-sync).
+// Testé par tests/functions/garmin-import.test.ts.
 //
 // API personnelle de Garmin Connect (niveau « Personal », lecture seule) :
 //   1. la clé d'API personnelle s'échange contre un jeton d'accès valable 24 h :
@@ -39,7 +40,7 @@ export type ImportResult =
   | { status: 200; body: { activities: GarminSummary[] } }
   | { status: 400 | 403 | 502 | 503; body: { error: ImportError } }
 
-type Fetch = (url: string, init?: { method?: string; headers?: Record<string, string> }) => Promise<{
+export type Fetch = (url: string, init?: { method?: string; headers?: Record<string, string> }) => Promise<{
   ok: boolean
   status: number
   text: () => Promise<string>
@@ -101,8 +102,52 @@ function readToken(body: string): string | null {
   return token.split('.').length === 3 ? token : null
 }
 
+export type FetchResult = { activities: GarminSummary[] } | { error: 'garmin_key_rejected' | 'garmin_unavailable' }
+
+/** Échange la clé contre un jeton, puis lit les activités de la période. */
+export async function fetchGarminActivities(
+  apiKey: string,
+  range: { from: string; to: string },
+  fetchImpl: Fetch,
+): Promise<FetchResult> {
+  try {
+    const tokenResponse = await fetchImpl(GARMIN_BASE + TOKEN_PATH, {
+      method: 'POST',
+      headers: { Authorization: `ApiKey ${apiKey.trim()}`, Accept: '*/*' },
+    })
+    if (tokenResponse.status === 401 || tokenResponse.status === 403) return { error: 'garmin_key_rejected' }
+    const token = tokenResponse.ok ? readToken(await tokenResponse.text()) : null
+    if (!token) return { error: 'garmin_unavailable' }
+
+    const query = new URLSearchParams({
+      start: '0',
+      limit: String(MAX_ACTIVITIES),
+      startDate: range.from,
+      endDate: range.to,
+    })
+    const listResponse = await fetchImpl(`${GARMIN_BASE}${LIST_PATH}?${query}`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+    })
+    if (listResponse.status === 401 || listResponse.status === 403) return { error: 'garmin_key_rejected' }
+    if (!listResponse.ok) return { error: 'garmin_unavailable' }
+    const text = await listResponse.text()
+    const list: unknown = text ? JSON.parse(text) : []
+    const activities = (Array.isArray(list) ? list : [])
+      .map(pickSummary)
+      .filter((a): a is GarminSummary => a !== null)
+    return { activities }
+  } catch {
+    return { error: 'garmin_unavailable' }
+  }
+}
+
+/** Vrai si `email` est l'adresse désignée par GARMIN_ATHLETE_EMAIL (sans tenir compte de la casse). */
+export function sameEmail(email: string | null | undefined, allowed: string): boolean {
+  return !!email && email.trim().toLowerCase() === allowed.trim().toLowerCase()
+}
+
 /**
- * Traite une demande d'import. `email` est l'adresse du compte connecté (vérifiée par Supabase) :
+ * Traite une demande d'import du site. `email` est l'adresse du compte connecté (vérifiée par Supabase) :
  * seule la personne désignée par le secret GARMIN_ATHLETE_EMAIL peut lire les activités de la clé.
  */
 export async function handleImport({
@@ -119,43 +164,9 @@ export async function handleImport({
   fetchImpl: Fetch
 }): Promise<ImportResult> {
   if (!apiKey?.trim() || !allowedEmail?.trim()) return { status: 503, body: { error: 'not_configured' } }
-  if (!email || email.trim().toLowerCase() !== allowedEmail.trim().toLowerCase()) {
-    return { status: 403, body: { error: 'not_allowed' } }
-  }
+  if (!sameEmail(email, allowedEmail)) return { status: 403, body: { error: 'not_allowed' } }
   const range = parseRange(body)
   if (!range) return { status: 400, body: { error: 'bad_range' } }
-
-  try {
-    const tokenResponse = await fetchImpl(GARMIN_BASE + TOKEN_PATH, {
-      method: 'POST',
-      headers: { Authorization: `ApiKey ${apiKey.trim()}`, Accept: '*/*' },
-    })
-    if (tokenResponse.status === 401 || tokenResponse.status === 403) {
-      return { status: 502, body: { error: 'garmin_key_rejected' } }
-    }
-    const token = tokenResponse.ok ? readToken(await tokenResponse.text()) : null
-    if (!token) return { status: 502, body: { error: 'garmin_unavailable' } }
-
-    const query = new URLSearchParams({
-      start: '0',
-      limit: String(MAX_ACTIVITIES),
-      startDate: range.from,
-      endDate: range.to,
-    })
-    const listResponse = await fetchImpl(`${GARMIN_BASE}${LIST_PATH}?${query}`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-    })
-    if (listResponse.status === 401 || listResponse.status === 403) {
-      return { status: 502, body: { error: 'garmin_key_rejected' } }
-    }
-    if (!listResponse.ok) return { status: 502, body: { error: 'garmin_unavailable' } }
-    const text = await listResponse.text()
-    const list: unknown = text ? JSON.parse(text) : []
-    const activities = (Array.isArray(list) ? list : [])
-      .map(pickSummary)
-      .filter((a): a is GarminSummary => a !== null)
-    return { status: 200, body: { activities } }
-  } catch {
-    return { status: 502, body: { error: 'garmin_unavailable' } }
-  }
+  const result = await fetchGarminActivities(apiKey, range, fetchImpl)
+  return 'error' in result ? { status: 502, body: { error: result.error } } : { status: 200, body: result }
 }

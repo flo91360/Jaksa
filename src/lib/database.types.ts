@@ -240,6 +240,19 @@ export type Database = {
         Update: Partial<GarminActivityValues> & { workout_id?: string | null }
         Relationships: []
       }
+      garmin_sync_runs: {
+        Row: {
+          id: number
+          athlete_id: string | null
+          ran_at: string
+          status: 'ok' | 'unknown_athlete' | 'garmin_key_rejected' | 'garmin_unavailable' | 'save_failed'
+          imported: number
+          linked: number
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       workout_comments: {
         Row: {
           id: string
@@ -362,3 +375,4 @@ export type WorkoutActivity = PublicSchema['Views']['workout_activity']['Row']
 export type Conversation = PublicSchema['Views']['conversations']['Row']
 export type GarminActivity = PublicSchema['Tables']['garmin_activities']['Row']
 export type GarminActivityInsert = PublicSchema['Tables']['garmin_activities']['Insert']
+export type GarminSyncRun = PublicSchema['Tables']['garmin_sync_runs']['Row']

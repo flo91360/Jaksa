@@ -30,7 +30,7 @@ export function AccountPage() {
         {profile.data?.role === 'athlete' && (
           <Card
             title="Montre Garmin (essai)"
-            description="Importe tes activités des 14 derniers jours : durée, distance, allure, FC et D+ s’affichent sous la séance prévue le même jour, pour toi et ton coach. Pour l’instant, réservé à un compte de test."
+            description="Importe tes activités des 14 derniers jours : durée, distance, allure, FC et D+ s’affichent sous la séance prévue le même jour, pour toi et ton coach. L’import se fait aussi tout seul toutes les 15 minutes ; ce bouton sert à ne pas attendre. Pour l’instant, réservé à un compte de test."
             actions={<GarminAttribution />}
             className="lg:col-span-2"
           >

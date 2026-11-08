@@ -1,0 +1,6 @@
+# Réglages Supabase lus par la ligne de commande (déploiement automatique, docs/DEPLOIEMENT.md, étape 4).
+project_id = "rob1coach"
+
+# Import Garmin automatique : appelé par pg_cron, sans session d'utilisateur (voir supabase/functions/garmin-sync).
+[functions.garmin-sync]
+verify_jwt = false
