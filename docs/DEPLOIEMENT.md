@@ -280,3 +280,41 @@ ce qui coupe aussitôt l'accès.
 
 Si l'import affiche « L'import Garmin n'est pas disponible », la fonction n'est pas déployée ; « pas encore ouvert
 pour ton compte », l'adresse de `GARMIN_ATHLETE_EMAIL` ne correspond pas au compte connecté.
+
+## 9. Fusion automatique des pull requests
+
+Chaque pull request ouverte par le propriétaire du dépôt (y compris celles que Claude ouvre) est fusionnée par GitHub
+dès que la CI est verte, sans attendre personne : c'est la tâche
+[`.github/workflows/fusion-auto.yml`](../.github/workflows/fusion-auto.yml). Les migrations et les fonctions
+partent ensuite comme d'habitude (étape 4). Compter 10 minutes, une seule fois.
+
+1. **Autoriser la fusion automatique** : sur GitHub, dépôt → **Settings** → **General** → section **Pull Requests** →
+   cocher **Allow auto-merge** (et, au passage, **Automatically delete head branches**).
+2. **Dire à GitHub ce qu'est « la CI est verte »** : **Settings** → **Rules** → **Rulesets** → **New ruleset** →
+   **New branch ruleset** :
+   - nom : `main` ; **Enforcement status** : **Active** ;
+   - **Target branches** → **Add target** → **Include default branch** ;
+   - cocher **Require status checks to pass**, puis **Add checks** → `Lint, types, tests, build` ;
+   - ne pas cocher « Require a pull request before merging » avec des relectures obligatoires (personne ne
+     relirait) ; laisser le reste décoché, puis **Create**.
+
+   Seul ce contrôle compte : l'aperçu Cloudflare (« Workers Builds ») n'empêche pas la fusion.
+3. **Créer le jeton** : [github.com/settings/personal-access-tokens/new](https://github.com/settings/personal-access-tokens/new)
+   (jeton « fine-grained ») :
+   - nom : `rob1coach-fusion-auto` ; expiration : 1 an (GitHub prévient avant) ;
+   - **Repository access** → **Only select repositories** → `Rob1Coach` ;
+   - **Permissions** → **Contents** : *Read and write* ; **Pull requests** : *Read and write* ;
+   - **Generate token**, et copier le jeton (affiché une seule fois).
+
+   Le jeton doit être à ton nom : une fusion faite par le jeton interne de GitHub Actions ne déclencherait pas le
+   déploiement Supabase.
+4. **Le ranger en secret** : dépôt → **Settings** → **Secrets and variables** → **Actions** → **New repository
+   secret** → nom `FUSION_AUTO_TOKEN`, valeur : le jeton.
+
+Pour vérifier : une nouvelle pull request affiche « Auto-merge enabled » quelques secondes après son ouverture. Pour
+garder une PR ouverte (à relire avant), cliquer sur **Disable auto-merge** sur sa page. Si la tâche échoue avec
+« Secret FUSION_AUTO_TOKEN absent » ou une erreur de droits, le jeton manque ou a expiré (étape 3).
+
+L'aperçu Cloudflare des branches (« Workers Builds » rouge sur les PR) peut être coupé dans Cloudflare :
+**Workers & Pages** → `rob1coach` → **Settings** → **Build** → **Branch control** → décocher **Builds for
+non-production branches**. Le site en production, construit à chaque fusion dans `main`, n'est pas concerné.

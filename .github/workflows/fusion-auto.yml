@@ -1,0 +1,37 @@
+# Fusion automatique des pull requests : dès qu'une PR est ouverte sur ce dépôt par son propriétaire
+# (c'est aussi le cas de celles que Claude ouvre en son nom), la fusion automatique de GitHub est activée.
+# GitHub fusionne ensuite tout seul quand les contrôles exigés par la règle de `main` sont verts.
+#
+# Mise en place, une seule fois : docs/DEPLOIEMENT.md, étape 9.
+# Le jeton FUSION_AUTO_TOKEN est au nom du propriétaire : une fusion faite avec le jeton de GitHub Actions
+# ne déclencherait pas les tâches de `main` (déploiement Supabase, CI).
+# Pour garder une PR ouverte : bouton « Disable auto-merge » sur la PR.
+name: Fusion automatique
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+permissions: {}
+
+jobs:
+  activer:
+    name: Activer la fusion automatique
+    # Jamais pour une PR venue d'un fork, ni d'un autre auteur, ni en brouillon.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login == github.repository_owner &&
+      !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fusion automatique (squash) quand la CI est verte
+        env:
+          GH_TOKEN: ${{ secrets.FUSION_AUTO_TOKEN }}
+          PR: ${{ github.event.pull_request.html_url }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Secret FUSION_AUTO_TOKEN absent : voir docs/DEPLOIEMENT.md, étape 9."
+            exit 1
+          fi
+          gh pr merge --auto --squash --delete-branch "$PR"
