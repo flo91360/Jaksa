@@ -1,0 +1,33 @@
+# Dépendances et builds
+node_modules
+dist
+dist-ssr
+*.tsbuildinfo
+
+# Variables d'environnement locales (ne jamais committer de clés)
+.env
+.env.*
+!.env.example
+*.local
+
+# Supabase CLI
+supabase/.branches
+supabase/.temp
+
+# Tests
+coverage
+test-results
+playwright-report
+
+# Journaux
+logs
+*.log
+npm-debug.log*
+
+# Éditeurs
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.sw?
