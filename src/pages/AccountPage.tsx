@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { useMyProfile, useUpdateEmailNotifications, useUpdateMyName } from '../api/profile.ts'
+import { GarminAttribution, GarminImportButton } from '../components/garmin/Garmin.tsx'
 import { Alert, Button, Card, LoadingBlock, PageHeader, SavedHint, TextField } from '../components/ui.tsx'
 import type { Profile } from '../lib/database.types.ts'
 import { errorMessage } from '../lib/errors.ts'
@@ -24,6 +25,16 @@ export function AccountPage() {
         {profile.data && profile.data.email_notifications !== undefined && (
           <Card title="E-mails" className="lg:col-span-2">
             <EmailPreference profile={profile.data} />
+          </Card>
+        )}
+        {profile.data?.role === 'athlete' && (
+          <Card
+            title="Montre Garmin (essai)"
+            description="Importe tes activités des 14 derniers jours : durée, distance, allure, FC et D+ s’affichent sous la séance prévue le même jour, pour toi et ton coach. Pour l’instant, réservé à un compte de test."
+            actions={<GarminAttribution />}
+            className="lg:col-span-2"
+          >
+            <GarminImportButton athleteId={profile.data.id} />
           </Card>
         )}
         <Card title="Session" className="lg:col-span-2">

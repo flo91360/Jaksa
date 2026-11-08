@@ -49,6 +49,7 @@ chaque requête est faite au nom de l'utilisateur connecté, et les règles RLS
 | `workout_activity` (vue, 0.3.0) | Par séance : retour, nombre de commentaires et de non-lus (calendrier, liste « À voir ») |
 | `conversations` (vue, 0.3.0) | Par lien coach ↔ athlète : dernier message, nombre de non-lus |
 | `email_outbox` (0.3.0) | File d'attente des e-mails, inaccessible depuis le site |
+| `garmin_activities` (0.4.0) | Activités importées depuis Garmin : identifiant Garmin, séance rattachée, durée, distance, D+, FC moyenne et max |
 
 Zones (`athlete_profiles.zones`) : tableau de 7 zones au plus, chacune de la forme
 `{ zone, name, hr_min, hr_max, pace_slow, pace_fast }`. FC en bpm, allures en
@@ -91,9 +92,10 @@ quand le coach les met à jour. La base vérifie ce format (`workout_steps_are_v
 | Commentaires d'une séance | lit, écrit, supprime les siens | lit, écrit, supprime les siens | — |
 | Messages | sa conversation avec chaque athlète | sa conversation avec son coach | — |
 | File d'attente des e-mails | **jamais** | **jamais** | — |
+| Activités Garmin | lit | importe, lit, supprime les siennes | — |
 
 Ces règles sont vérifiées automatiquement par `tests/db/socle.test.ts`, `tests/db/planification.test.ts` et
-`tests/db/echanges.test.ts`. Un message ou un commentaire ne se modifie pas ; « lu » et « vu par le coach » ne
+`tests/db/echanges.test.ts` et `tests/db/garmin.test.ts`. Un message ou un commentaire ne se modifie pas ; « lu » et « vu par le coach » ne
 s'écrivent qu'au travers de `mark_conversation_read` et `mark_workout_seen`.
 
 Une séance ne change jamais d'athlète : la copier vers un autre athlète crée une nouvelle séance.
@@ -115,6 +117,28 @@ En attendant l'accès aux API Garmin (0.4.0), chaque séance de course peut êtr
 - Les tables `messages`, `workout_comments` et `workout_feedback` sont publiées dans Supabase Realtime : le site
   reçoit les nouveautés aussitôt (`useRealtimeExchanges`), chacun ne recevant que ce que la RLS l'autorise à lire.
 - Tant que la migration de la 0.3.0 n'est pas appliquée, le site masque ces nouveautés au lieu d'afficher une erreur.
+
+## Import Garmin (0.4.0, compte de test)
+
+Le niveau « Personal » de Garmin ne donne accès qu'aux données de la personne qui a créé la clé, en lecture seule.
+Il ne sert donc qu'à un compte de test, en attendant le niveau Starter (voir `docs/PLAN.md`).
+
+```
+Site (athlète connecté) ──► fonction Supabase garmin-import ──► API personnelle Garmin
+   │                         · vérifie que le compte est celui de GARMIN_ATHLETE_EMAIL
+   │                         · échange la clé contre un jeton de 24 h, lit les activités
+   │                         · ne renvoie que les champs utiles (supabase/functions/garmin-import/garmin.ts)
+   └─► rattache chaque activité à la séance du même jour (src/domain/garmin.ts),
+       puis l'enregistre dans garmin_activities en son nom (RLS)
+```
+
+- La clé Garmin n'est connue que de la fonction (secret Supabase) ; le jeton d'accès n'est jamais stocké.
+- Rattachement : même jour (heure locale de la montre), sport compatible (une sortie course ou trail va sur une séance
+  de course ou de trail, le vélo sur « autre sport »), une activité par séance, dans l'ordre de la journée. Un
+  rattachement déjà enregistré n'est pas changé par un nouvel import.
+- Le retour de séance est pré-rempli avec la durée, la distance et le D+ mesurés par la montre.
+- Avec le niveau Starter, Garmin enverra lui-même les activités au site : la lecture chez Garmin sera à refaire, mais
+  pas la table, le rattachement ni l'affichage.
 
 ## E-mails
 

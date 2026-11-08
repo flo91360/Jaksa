@@ -59,13 +59,14 @@ Chaque version passe par une pull request et des tests automatiques.
 
 ### 0.4.0 : Garmin
 
-Étape préalable, possible tout de suite : un **test perso** avec le niveau Personal,
-sur le seul compte Garmin de Florian (voir « Garmin : le point bloquant ») :
+Étape préalable, **faite** (mise en route : [DEPLOIEMENT.md](DEPLOIEMENT.md), étape 8) : un **test perso**
+avec le niveau Personal, sur le seul compte Garmin de Florian (voir « Garmin : le point bloquant ») :
 
-- import de ses activités (résumé JSON et fichier `.FIT` : FC, allure, D+, tours),
-  rattachées à la séance prévue le même jour ;
-- affichage de ces données dans le retour de séance ;
-- but : valider la lecture des `.FIT` et le rattachement aux séances, qui resteront
+- import de ses activités des 14 derniers jours (résumé JSON : durée, distance, D+, FC moyenne et max),
+  rattachées à la séance prévue le même jour ; la lecture des fichiers `.FIT` (tours, courbe de FC)
+  viendra avec le calcul de charge de la 0.5.0 ;
+- affichage de ces données sous la séance, pour l'athlète et son coach, et pré-remplissage du retour ;
+- but : valider le rattachement aux séances et l'affichage, qui resteront
   valables au niveau Starter. La récupération des données sera à refaire, car le
   Starter envoie les données au site au lieu de les laisser lire à la demande ;
 - l'envoi des séances sur la montre ne peut pas être testé à ce niveau.

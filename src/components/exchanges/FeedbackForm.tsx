@@ -6,6 +6,7 @@ import {
   type FeedbackErrors,
   type FeedbackStatus,
   MAX_PAINS,
+  type MeasuredActivity,
   PAIN_LOCATIONS,
   PAIN_SIDES,
   type Pain,
@@ -29,15 +30,18 @@ export function FeedbackForm({
   title,
   feedback,
   planned,
+  measured,
   onClose,
 }: {
   workoutId: string
   title: string
   feedback: WorkoutFeedback | null
   planned?: WorkoutTotals
+  /** Activité Garmin rattachée : ses chiffres pré-remplissent un nouveau retour. */
+  measured?: MeasuredActivity | null
   onClose: () => void
 }) {
-  const [draft, setDraft] = useState<FeedbackDraft>(() => feedbackToDraft(feedback, planned))
+  const [draft, setDraft] = useState<FeedbackDraft>(() => feedbackToDraft(feedback, planned, measured))
   const [errors, setErrors] = useState<FeedbackErrors>({})
   const [note, setNote] = useState('')
   const [formError, setFormError] = useState<string | null>(null)

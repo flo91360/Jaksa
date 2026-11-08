@@ -8,6 +8,7 @@ coût d'hébergement proche de zéro.
 - **Planification** : calendrier à la semaine ou au mois, par athlète ou pour tous, avec glisser-déposer ; constructeur de séances (échauffement, blocs répétés, récupérations) dont les zones se traduisent en FC et en allure ; bibliothèque de séances types ; courses A/B/C.
 - **Athlète** : rejoint son coach en un clic, voit sa séance du jour et sa semaine, exporte la séance en `.FIT` pour sa montre Garmin, retrouve ses zones et ses courses.
 - **Échanges** : l'athlète fait son retour de séance (faite ou non, durée, distance, D+, RPE, douleurs) et le coach le voit dans son planning, avec la mention « vu par le coach » ; fil de commentaires sous chaque séance ; messagerie en temps réel ; e-mails (séance du lendemain, nouveaux retours et messages).
+- **Garmin (essai)** : un compte de test importe ses activités Garmin (durée, distance, allure, FC, D+), rattachées à la séance prévue et visibles par son coach.
 - Le site fonctionne sur téléphone et sur ordinateur, et s'installe sur l'écran d'accueil.
 
 La suite (envoi automatique sur les montres Garmin, suivi de la charge) est décrite dans [docs/PLAN.md](docs/PLAN.md).

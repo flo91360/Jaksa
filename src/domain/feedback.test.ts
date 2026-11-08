@@ -65,6 +65,22 @@ describe('retour de séance', () => {
     expect(feedbackToDraft(null)).toMatchObject({ hours: '', minutes: '', km: '' })
   })
 
+  it('préfère ce qu’a mesuré la montre à l’estimation', () => {
+    const planned = { seconds: 3000, meters: 10_250, complete: true }
+    const measured = { duration_s: 3125, distance_m: 10_215, elevation_gain_m: 85 }
+    expect(feedbackToDraft(null, planned, measured)).toMatchObject({ hours: '0', minutes: '52', km: '10,22', elevation: '85' })
+    // Un retour déjà saisi reste prioritaire.
+    const feedback = {
+      status: 'partial' as const,
+      duration_s: 1800,
+      distance_m: 6000,
+      elevation_gain_m: null,
+      rpe: 4,
+      pain: [],
+    }
+    expect(feedbackToDraft(feedback, planned, measured)).toMatchObject({ minutes: '30', km: '6', elevation: '' })
+  })
+
   it('relit un retour existant', () => {
     const feedback = { status: 'partial' as const, duration_s: 2700, distance_m: 8000, elevation_gain_m: null, rpe: 4, pain: [] }
     const back = draftToFeedback(feedbackToDraft(feedback, { seconds: 1, meters: 1, complete: true }))

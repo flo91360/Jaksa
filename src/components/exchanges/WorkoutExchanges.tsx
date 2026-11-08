@@ -7,6 +7,7 @@ import {
   useFeedback,
   useMarkWorkoutSeen,
 } from '../../api/exchanges.ts'
+import { useWorkoutGarminActivity } from '../../api/garmin.ts'
 import { todayIso } from '../../domain/calendar.ts'
 import { describePain, formatFeedback, painLevel } from '../../domain/feedback.ts'
 import { COMMENT_MAX, cleanBody, formatDayLabel, formatTime, localDay } from '../../domain/messages.ts'
@@ -15,6 +16,7 @@ import type { HrZone } from '../../domain/zones.ts'
 import type { Workout, WorkoutComment, WorkoutFeedback } from '../../lib/database.types.ts'
 import { errorMessage } from '../../lib/errors.ts'
 import { firstName } from '../../lib/format.ts'
+import { GarminActivityCard } from '../garmin/Garmin.tsx'
 import { Alert, Button, Spinner } from '../ui.tsx'
 import { FeedbackForm } from './FeedbackForm.tsx'
 
@@ -40,6 +42,9 @@ export function WorkoutExchanges({
 }) {
   const feedback = useFeedback(workout.id)
   const comments = useComments(workout.id)
+  // Absente tant que la migration de la 0.4.0 n'est pas appliquée : on n'affiche alors rien.
+  const garmin = useWorkoutGarminActivity(workout.id)
+  const measured = garmin.data ?? null
   const markSeen = useMarkWorkoutSeen()
   const [editing, setEditing] = useState(false)
   const [today] = useState(() => todayIso())
@@ -63,6 +68,7 @@ export function WorkoutExchanges({
 
   return (
     <div className="space-y-4">
+      {measured && <GarminActivityCard activity={measured} />}
       <section aria-label="Retour de séance" className="space-y-2">
         {feedback.isPending ? (
           <Spinner className="size-5 text-slate-400" />
@@ -99,6 +105,7 @@ export function WorkoutExchanges({
           title={workout.title}
           feedback={feedback.data ?? null}
           planned={workoutTotals(workout.steps, zones)}
+          measured={measured}
           onClose={() => setEditing(false)}
         />
       )}

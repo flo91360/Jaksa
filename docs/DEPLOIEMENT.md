@@ -17,7 +17,8 @@ Compter environ une heure la première fois.
    fichier de [`supabase/migrations/`](../supabase/migrations/), **dans l'ordre**, et faire **Run** à chaque fois :
    - `20261108120000_socle.sql` (0.1.0) ;
    - `20261109090000_planification.sql` (0.2.0 : séances, séances types, courses) ;
-   - `20261110090000_echanges.sql` (0.3.0 : retours de séance, commentaires, messagerie, e-mails).
+   - `20261110090000_echanges.sql` (0.3.0 : retours de séance, commentaires, messagerie, e-mails) ;
+   - `20261111090000_garmin.sql` (0.4.0 : activités importées depuis Garmin).
    - Avec la ligne de commande, c'est équivalent : `npx supabase link --project-ref <ref>` puis `npx supabase db push`.
 3. Dans **Authentication** → **Sign In / Providers** → **Email** :
    - garder le fournisseur e-mail activé ;
@@ -79,6 +80,7 @@ Il faut appliquer les fichiers dans l'ordre, une seule fois chacun, et ne jamais
 | 0.1.0 | `20261108120000_socle.sql` |
 | 0.2.0 | `20261109090000_planification.sql` |
 | 0.3.0 | `20261110090000_echanges.sql` |
+| 0.4.0 | `20261111090000_garmin.sql` |
 
 Pour passer de 0.1.0 à 0.2.0, il suffit donc de coller `20261109090000_planification.sql` dans le SQL Editor
 **avant** de fusionner la pull request (sinon le site déployé cherche des tables qui n'existent pas encore).
@@ -169,3 +171,39 @@ lendemain, nouveaux retours, commentaires et messages). Pour qu'ils partent vrai
 
 Chacun peut couper les e-mails dans **Mon compte**. Les e-mails déjà lus sur le site ne sont pas envoyés, et ceux
 de plus de 24 heures sont abandonnés.
+
+## 8. Import Garmin, compte de test (0.4.0)
+
+Pour l'instant, une seule personne importe ses activités Garmin, avec sa clé d'API **personnelle** (niveau
+« Personal » de Garmin : lecture seule, ses propres données). Le site ne voit jamais la clé : elle reste dans
+Supabase, et une fonction Supabase (`garmin-import`) s'en sert pour lire les activités chez Garmin.
+Compter 15 minutes.
+
+1. **Appliquer la migration** `20261111090000_garmin.sql` (étape 4), avant de fusionner la pull request.
+2. **Créer la clé Garmin** : se connecter sur [connect.garmin.com](https://connect.garmin.com), ouvrir
+   [la page de la clé d'API personnelle](https://connect.garmin.com/app/settings/personalApiToken), accepter les
+   conditions, choisir une durée (30 jours à 1 an) et cliquer sur **Create**. La clé ne s'affiche qu'**une fois** :
+   la copier tout de suite dans le gestionnaire de mots de passe, et ne la coller nulle part ailleurs (ni dans un
+   e-mail, ni dans une discussion). Il n'y a rien d'autre à générer : la fonction échange elle-même la clé contre un
+   jeton d'accès de 24 h à chaque import.
+3. **Ranger la clé dans Supabase** : **Edge Functions** → **Secrets** → ajouter deux secrets :
+   - `GARMIN_PERSONAL_API_KEY` : la clé Garmin ;
+   - `GARMIN_ATHLETE_EMAIL` : l'adresse e-mail du compte **athlète** Rob1Coach qui recevra ces activités. La
+     fonction refuse tout autre compte, coach compris.
+4. **Déployer la fonction** `garmin-import`, au choix :
+   - avec la ligne de commande : `npx supabase functions deploy garmin-import --project-ref <ref>` ;
+   - ou dans le tableau de bord : **Edge Functions** → **Deploy a new function** → **Via Editor**, nom
+     `garmin-import`, puis recopier les deux fichiers de
+     [`supabase/functions/garmin-import/`](../supabase/functions/garmin-import/) (`index.ts` et `garmin.ts`) et
+     **Deploy**. Laisser l'option **Verify JWT** activée.
+5. **Essayer** : se connecter sur le site avec le compte athlète choisi, **Mon compte** → **Montre Garmin (essai)**
+   → **Importer mes activités Garmin**. Les activités des 14 derniers jours apparaissent ensuite sous la séance prévue
+   le même jour, et dans la carte **Ta montre** de l'accueil, qui relance l'import toute seule à l'ouverture (au plus
+   toutes les 30 minutes).
+
+Garmin prévient par e-mail une semaine avant l'expiration de la clé. Pour la renouveler : créer une nouvelle clé
+(étape 2) et remplacer `GARMIN_PERSONAL_API_KEY` (étape 3). Pour tout arrêter : supprimer la clé dans Garmin Connect,
+ce qui coupe aussitôt l'accès.
+
+Si l'import affiche « L'import Garmin n'est pas disponible », la fonction n'est pas déployée ; « pas encore ouvert
+pour ton compte », l'adresse de `GARMIN_ATHLETE_EMAIL` ne correspond pas au compte connecté.
