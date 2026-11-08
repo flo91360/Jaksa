@@ -4,6 +4,8 @@ import { AppLayout } from './components/AppLayout.tsx'
 import { AccountPage } from './pages/AccountPage.tsx'
 import { InvitationPage } from './pages/InvitationPage.tsx'
 import { LoginPage } from './pages/LoginPage.tsx'
+import { MessagesPage } from './pages/MessagesPage.tsx'
+import { WorkoutPage } from './pages/WorkoutPage.tsx'
 import { NotFoundPage } from './pages/MiscPages.tsx'
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/PasswordPages.tsx'
 import { MyProfilePage } from './pages/athlete/MyProfilePage.tsx'
@@ -92,6 +94,8 @@ export function App() {
             </RequireRole>
           }
         />
+        <Route path="messages" element={<MessagesPage />} />
+        <Route path="seance/:workoutId" element={<WorkoutPage />} />
         <Route path="compte" element={<AccountPage />} />
       </Route>
 

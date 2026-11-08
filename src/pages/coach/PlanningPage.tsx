@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { useAthleteProfiles, useCoachAthletes } from '../../api/athletes.ts'
 import { useUserId } from '../../auth/auth-context.ts'
 import { PlanningBoard } from '../../components/calendar/PlanningBoard.tsx'
+import { CoachInbox } from '../../components/exchanges/CoachInbox.tsx'
 import { Alert, EmptyState, LoadingBlock, PageHeader } from '../../components/ui.tsx'
 import type { AthleteOption } from '../../components/workout/WorkoutEditor.tsx'
 import { errorMessage } from '../../lib/errors.ts'
@@ -37,7 +38,10 @@ export function PlanningPage() {
           : leurs séances apparaîtront ici.
         </EmptyState>
       ) : (
-        <PlanningBoard athletes={athletes} multi />
+        <div className="space-y-6">
+          <CoachInbox coachId={coachId} names={Object.fromEntries(athletes.map((a) => [a.id, a.name]))} />
+          <PlanningBoard athletes={athletes} multi />
+        </div>
       )}
     </>
   )

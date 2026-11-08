@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from 'react'
-import { useMyProfile, useUpdateMyName } from '../api/profile.ts'
+import { useMyProfile, useUpdateEmailNotifications, useUpdateMyName } from '../api/profile.ts'
 import { Alert, Button, Card, LoadingBlock, PageHeader, SavedHint, TextField } from '../components/ui.tsx'
 import type { Profile } from '../lib/database.types.ts'
 import { errorMessage } from '../lib/errors.ts'
@@ -21,6 +21,11 @@ export function AccountPage() {
         <Card title="Mot de passe">
           <NewPasswordForm submitLabel="Changer le mot de passe" />
         </Card>
+        {profile.data && profile.data.email_notifications !== undefined && (
+          <Card title="E-mails" className="lg:col-span-2">
+            <EmailPreference profile={profile.data} />
+          </Card>
+        )}
         <Card title="Session" className="lg:col-span-2">
           <Button variant="secondary" onClick={() => void supabase.auth.signOut()}>
             Se déconnecter
@@ -66,5 +71,33 @@ function NameForm({ profile }: { profile: Profile }) {
         </Button>
       </div>
     </form>
+  )
+}
+
+function EmailPreference({ profile }: { profile: Profile }) {
+  const update = useUpdateEmailNotifications()
+  const coach = profile.role === 'coach'
+  return (
+    <div className="space-y-3">
+      <label className="flex min-h-11 cursor-pointer items-start gap-3">
+        <input
+          type="checkbox"
+          className="mt-1 size-5 accent-emerald-700"
+          checked={profile.email_notifications}
+          disabled={update.isPending}
+          onChange={(event) => update.mutate(event.target.checked)}
+        />
+        <span className="text-sm text-slate-800">
+          <span className="block font-medium">Recevoir les e-mails de Rob1Coach</span>
+          <span className="text-slate-600">
+            {coach
+              ? 'Un e-mail quand un athlète fait son retour, commente une séance ou t’écrit (regroupés, et seulement si tu ne les as pas déjà lus sur le site).'
+              : 'Ta séance du lendemain, chaque soir, et un e-mail quand ton coach t’écrit ou commente une séance.'}{' '}
+            Les e-mails ne contiennent que des liens, jamais tes données de santé.
+          </span>
+        </span>
+      </label>
+      {update.isError && <Alert tone="error">{errorMessage(update.error)}</Alert>}
+    </div>
   )
 }

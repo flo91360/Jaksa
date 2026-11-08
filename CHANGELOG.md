@@ -1,5 +1,25 @@
 # Journal des versions
 
+## [0.3.0] - 2026-11-08
+
+Les échanges et les retours.
+
+- **Retour de séance** par l'athlète, en un bouton « J’ai fait ma séance » :
+  - faite, faite en partie ou pas faite ;
+  - durée, distance et D+, pré-remplis avec l'estimation de la séance prévue ;
+  - ressenti (RPE de 1 à 10) ;
+  - douleurs : où (genou, tendon d’Achille, mollet…), de quel côté et avec quelle intensité (1 à 10).
+- **« Vu par le coach »** : l'athlète sait quand son coach a lu son retour et ses commentaires.
+- **Commentaires** sous chaque séance, pour l'athlète comme pour le coach.
+- **Planning du coach** : chaque séance affiche le retour (fait / pas fait, RPE, douleur, commentaires), avec un point rouge pour ce qui n'a pas encore été vu, et une liste « À voir » en tête du planning.
+- **Messagerie** coach ↔ athlète, mise à jour en temps réel, avec le nombre de messages non lus dans le menu.
+- **Athlète** : « Tes dernières séances » rappelle celles qui attendent un retour.
+- **E-mails** (à activer, voir `docs/DEPLOIEMENT.md`, étape 7) :
+  - chaque soir, la séance du lendemain pour l'athlète ;
+  - nouveau retour, commentaire ou message, regroupés toutes les 10 minutes et seulement s'ils n'ont pas déjà été lus sur le site ;
+  - aucune donnée de santé ni le texte des messages dans les e-mails, seulement des liens ;
+  - désactivables par chacun dans « Mon compte ».
+
 ## [0.2.0] - 2026-11-08
 
 La planification.

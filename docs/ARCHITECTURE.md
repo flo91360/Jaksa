@@ -43,6 +43,12 @@ chaque requête est faite au nom de l'utilisateur connecté, et les règles RLS
 | `workouts` (0.2.0) | Séances planifiées : athlète, coach, date, ordre dans la journée, type, titre, consignes, étapes (JSON) |
 | `workout_templates` (0.2.0) | Bibliothèque de séances types, propre à chaque coach |
 | `races` (0.2.0) | Courses et objectifs de l'athlète : date, distance, D+, priorité A/B/C |
+| `workout_feedback` (0.3.0) | Retour de séance (un par séance) : faite ou non, durée, distance, D+, RPE, douleurs (JSON), « vu par le coach » |
+| `workout_comments` (0.3.0) | Commentaires d'une séance, lus ou non par l'autre partie |
+| `messages` (0.3.0) | Messagerie coach ↔ athlète, lus ou non |
+| `workout_activity` (vue, 0.3.0) | Par séance : retour, nombre de commentaires et de non-lus (calendrier, liste « À voir ») |
+| `conversations` (vue, 0.3.0) | Par lien coach ↔ athlète : dernier message, nombre de non-lus |
+| `email_outbox` (0.3.0) | File d'attente des e-mails, inaccessible depuis le site |
 
 Zones (`athlete_profiles.zones`) : tableau de 7 zones au plus, chacune de la forme
 `{ zone, name, hr_min, hr_max, pace_slow, pace_fast }`. FC en bpm, allures en
@@ -81,8 +87,14 @@ quand le coach les met à jour. La base vérifie ce format (`workout_steps_are_v
 | Séances des autres athlètes | **jamais** | **jamais** | — |
 | Séances types (bibliothèque) | les siennes : tout | **jamais** | — |
 | Courses et objectifs | lit, crée, modifie, supprime | lit, crée, modifie, supprime | — |
+| Retour de séance | lit, marque « vu » | lit, crée, modifie, supprime le sien | — |
+| Commentaires d'une séance | lit, écrit, supprime les siens | lit, écrit, supprime les siens | — |
+| Messages | sa conversation avec chaque athlète | sa conversation avec son coach | — |
+| File d'attente des e-mails | **jamais** | **jamais** | — |
 
-Ces règles sont vérifiées automatiquement par `tests/db/socle.test.ts` et `tests/db/planification.test.ts`.
+Ces règles sont vérifiées automatiquement par `tests/db/socle.test.ts`, `tests/db/planification.test.ts` et
+`tests/db/echanges.test.ts`. Un message ou un commentaire ne se modifie pas ; « lu » et « vu par le coach » ne
+s'écrivent qu'au travers de `mark_conversation_read` et `mark_workout_seen`.
 
 Une séance ne change jamais d'athlète : la copier vers un autre athlète crée une nouvelle séance.
 
@@ -94,6 +106,30 @@ En attendant l'accès aux API Garmin (0.4.0), chaque séance de course peut êtr
 - L'encodeur est écrit à la main d'après la description publique du protocole : aucune bibliothèque Garmin n'est livrée dans le site.
 - Les tests relisent chaque fichier produit avec le SDK officiel de Garmin (`@garmin/fitsdk`, en dépendance de développement seulement).
 - Une cible en zone devient, au choix, une plage d'**allure** (par défaut) ou une plage de **FC** en bpm, tirées des zones de l'athlète.
+
+## Échanges et temps réel (0.3.0)
+
+- Douleurs (`workout_feedback.pain`) : tableau de 6 éléments au plus, `{ location, side, intensity }`, intensité de 1
+  à 10. La base vérifie ce format (`pain_is_valid`), l'application aussi (`src/domain/feedback.ts`).
+- Quand l'athlète modifie son retour, la mention « vu par le coach » s'efface.
+- Les tables `messages`, `workout_comments` et `workout_feedback` sont publiées dans Supabase Realtime : le site
+  reçoit les nouveautés aussitôt (`useRealtimeExchanges`), chacun ne recevant que ce que la RLS l'autorise à lire.
+- Tant que la migration de la 0.3.0 n'est pas appliquée, le site masque ces nouveautés au lieu d'afficher une erreur.
+
+## E-mails
+
+Il n'y a toujours pas de serveur : tout se passe dans Supabase.
+
+1. Des déclencheurs ajoutent une ligne dans `email_outbox` à chaque retour, commentaire ou message (pour le
+   destinataire, s'il n'a pas désactivé les e-mails). Chaque soir, `enqueue_tomorrow_workouts()` y ajoute la séance
+   du lendemain de chaque athlète actif.
+2. Toutes les 10 minutes, `send_email_outbox()` (tâche `pg_cron`) regroupe les lignes en attente par destinataire
+   (`prepare_email_digests`), écarte ce qui a déjà été lu sur le site, et envoie un seul e-mail par personne par
+   l'API de Brevo (extension `pg_net`). La clé de Brevo est chiffrée dans Supabase Vault.
+3. Les e-mails ne contiennent que des liens (`/seance/<id>`, `/messages`), jamais de données de santé ni le texte
+   des messages.
+
+L'activation (extensions, secrets, tâches planifiées) est dans `supabase/emails.sql`, à exécuter une fois.
 
 ## Sauvegardes
 

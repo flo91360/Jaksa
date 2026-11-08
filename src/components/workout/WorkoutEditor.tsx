@@ -10,7 +10,10 @@ import {
   workoutTotals,
 } from '../../domain/workouts.ts'
 import type { HrZone } from '../../domain/zones.ts'
-import type { Workout, WorkoutTemplate } from '../../lib/database.types.ts'
+import { useMyProfile } from '../../api/profile.ts'
+import { useUserId } from '../../auth/auth-context.ts'
+import type { Workout, WorkoutActivity, WorkoutTemplate } from '../../lib/database.types.ts'
+import { WorkoutExchanges } from '../exchanges/WorkoutExchanges.tsx'
 import { errorMessage } from '../../lib/errors.ts'
 import { Alert, Button, Modal, SelectField, TextAreaField, TextField } from '../ui.tsx'
 import { StepBuilder } from './StepBuilder.tsx'
@@ -103,14 +106,22 @@ export function WorkoutEditor({
   initial,
   athletes,
   existing,
+  activity,
   onClose,
 }: {
   workout?: Workout
   initial?: { athleteId?: string; date: IsoDate; content?: WorkoutContent }
   athletes: AthleteOption[]
   existing: Workout[]
+  /** Retour et commentaires de la séance : ouvre directement cet onglet s'il y a du nouveau. */
+  activity?: WorkoutActivity
   onClose: () => void
 }) {
+  const meId = useUserId()
+  const me = useMyProfile()
+  const [tab, setTab] = useState<'content' | 'exchanges'>(
+    activity && (activity.unseen_feedback || activity.unread_comments > 0) ? 'exchanges' : 'content',
+  )
   const state = useContentState(workout ?? initial?.content ?? EMPTY_CONTENT)
   const [athleteId, setAthleteId] = useState(workout?.athlete_id ?? initial?.athleteId ?? athletes[0]?.id ?? '')
   const [date, setDate] = useState<IsoDate>(workout?.scheduled_on ?? initial?.date ?? '')
@@ -181,6 +192,11 @@ export function WorkoutEditor({
       title={workout ? 'Modifier la séance' : 'Nouvelle séance'}
       onClose={onClose}
       footer={
+        workout && tab === 'exchanges' ? (
+          <Button variant="secondary" onClick={onClose}>
+            Fermer
+          </Button>
+        ) : (
         <>
           {workout && (
             <Button variant="danger" onClick={deleteWorkout} busy={remove.isPending} className="mr-auto">
@@ -194,9 +210,48 @@ export function WorkoutEditor({
             Enregistrer
           </Button>
         </>
+        )
       }
     >
-      <form id="workout-form" onSubmit={submit} className="space-y-4" noValidate>
+      {workout && (
+        <div className="-mt-1 mb-4 flex gap-1 border-b border-slate-200" role="tablist">
+          {(
+            [
+              ['content', 'Séance'],
+              ['exchanges', `Retour et commentaires${activity?.comment_count ? ` (${activity.comment_count})` : ''}`],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={tab === key}
+              onClick={() => setTab(key)}
+              className={`-mb-px inline-flex min-h-11 items-center gap-1.5 border-b-2 px-3 text-sm font-semibold ${tab === key ? 'border-emerald-700 text-emerald-800' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+            >
+              {label}
+              {key === 'exchanges' && activity && (activity.unseen_feedback || activity.unread_comments > 0) && (
+                <span className="size-2 rounded-full bg-red-600" aria-label="nouveau" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+      {workout && tab === 'exchanges' && (
+        <WorkoutExchanges
+          workout={workout}
+          zones={zones}
+          role="coach"
+          meId={meId}
+          names={{ [workout.athlete_id]: athlete?.name ?? '', [meId]: me.data?.full_name ?? '' }}
+        />
+      )}
+      <form
+        id="workout-form"
+        onSubmit={submit}
+        className={`space-y-4 ${workout && tab === 'exchanges' ? 'hidden' : ''}`}
+        noValidate
+      >
         {!workout && templates.data && templates.data.length > 0 && (
           <SelectField
             label="Partir d’une séance type"

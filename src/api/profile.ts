@@ -42,3 +42,22 @@ export function useUpdateMyName() {
     },
   })
 }
+
+export function useUpdateEmailNotifications() {
+  const queryClient = useQueryClient()
+  const { session } = useAuth()
+  return useMutation({
+    mutationFn: async (enabled: boolean): Promise<Profile> => {
+      if (!session) throw new Error('Aucun utilisateur connecté')
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ email_notifications: enabled })
+        .eq('id', session.user.id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: (profile) => queryClient.setQueryData(profileKey(profile.id), profile),
+  })
+}
