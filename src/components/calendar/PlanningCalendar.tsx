@@ -1,4 +1,5 @@
 import { type DragEvent, type ReactNode, useState } from 'react'
+import { Link } from 'react-router'
 import {
   type CalendarView,
   type IsoDate,
@@ -30,6 +31,8 @@ type Props = {
   activity?: Map<string, WorkoutActivity>
   /** Activités Garmin sans séance prévue (sorties libres). */
   freeActivities?: GarminActivity[]
+  /** Séances qui ont une activité de la montre (⌚ sur la carte). */
+  watched?: Set<string>
   /** Vue « tous mes athlètes » : une ligne par athlète, noms affichés. */
   multi: boolean
   onOpenWorkout: (workout: Workout) => void
@@ -82,6 +85,7 @@ export function PlanningCalendar(props: Props) {
       workout={workout}
       athlete={athletesById.get(workout.athlete_id)}
       activity={props.activity?.get(workout.id)}
+      watched={props.watched?.has(workout.id) ?? false}
       compact={options.compact}
       showName={options.showName}
       onOpen={() => props.onOpenWorkout(workout)}
@@ -324,6 +328,7 @@ function WorkoutCard({
   workout,
   athlete,
   activity,
+  watched,
   compact = false,
   showName = false,
   onOpen,
@@ -331,6 +336,7 @@ function WorkoutCard({
   workout: Workout
   athlete?: CalendarAthlete
   activity?: WorkoutActivity
+  watched: boolean
   compact?: boolean
   showName?: boolean
   onOpen: () => void
@@ -354,12 +360,22 @@ function WorkoutCard({
       )}
       <span className={`block truncate font-medium text-slate-900 ${compact ? 'text-xs' : 'text-sm'}`}>{workout.title}</span>
       {totals && <span className={`block truncate text-slate-500 ${compact ? 'text-[11px]' : 'text-xs'}`}>{totals}</span>}
-      <ActivityBadges activity={activity} compact={compact} />
+      <span className="flex flex-wrap items-center gap-1">
+        {watched && (
+          <span
+            className={`mt-0.5 rounded bg-sky-100 font-bold text-sky-800 ${compact ? 'px-1 text-[10px]' : 'px-1.5 text-[11px]'}`}
+            title="Activité de la montre : courbes et tours"
+          >
+            ⌚
+          </span>
+        )}
+        <ActivityBadges activity={activity} compact={compact} />
+      </span>
     </button>
   )
 }
 
-/** Sortie Garmin sans séance prévue : le coach la voit dans le planning, chiffres au survol. */
+/** Sortie Garmin sans séance prévue : chiffres au survol, détail (courbes, tours) au clic. */
 function FreeActivityChip({ activity, athleteName }: { activity: GarminActivity; athleteName: string }) {
   const figures = activityFigures(activity)
   const short = figures
@@ -369,10 +385,11 @@ function FreeActivityChip({ activity, athleteName }: { activity: GarminActivity;
   const detail = figures.map(([label, value]) => `${label} ${value}`).join(' · ')
   const title = `Sortie libre (Garmin) : ${activity.name || garminSportLabel(activity.activity_type)}${detail ? ` — ${detail}` : ''}`
   return (
-    <div
+    <Link
+      to={`/activite/${activity.id}`}
       title={title}
       aria-label={title}
-      className="w-full min-w-0 rounded-lg border border-dashed border-sky-300 bg-sky-50 px-1.5 py-1 text-xs text-sky-950"
+      className="block w-full min-w-0 rounded-lg border border-dashed border-sky-300 bg-sky-50 px-1.5 py-1 text-xs text-sky-950 hover:border-sky-400 hover:bg-sky-100"
     >
       <span className="block truncate font-semibold">
         ⌚ {athleteName ? `${athleteName} · ` : ''}
@@ -381,6 +398,6 @@ function FreeActivityChip({ activity, athleteName }: { activity: GarminActivity;
       <span className="block truncate text-[11px] text-sky-800">
         {[garminSportLabel(activity.activity_type), short].filter(Boolean).join(' · ')}
       </span>
-    </div>
+    </Link>
   )
 }

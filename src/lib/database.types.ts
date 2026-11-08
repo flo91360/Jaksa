@@ -4,6 +4,7 @@
  */
 import type { FeedbackStatus, Pain } from '../domain/feedback.ts'
 import type { GarminActivityValues } from '../domain/garmin.ts'
+import type { ActivityDetail } from '../domain/activityDetail.ts'
 import type { RacePriority } from '../domain/planning.ts'
 import type { WorkoutItem, WorkoutKind } from '../domain/workouts.ts'
 import type { HrZone } from '../domain/zones.ts'
@@ -240,6 +241,20 @@ export type Database = {
         Update: Partial<GarminActivityValues> & { workout_id?: string | null }
         Relationships: []
       }
+      /** Détail d'une activité (.FIT), écrit seulement par la fonction garmin-sync. */
+      garmin_activity_details: {
+        Row: {
+          activity_id: string
+          athlete_id: string
+          status: 'ok' | 'no_file' | 'unreadable'
+          /** Présent quand status = 'ok' ; à relire avec isActivityDetail. */
+          data: ActivityDetail | null
+          fetched_at: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       garmin_sync_runs: {
         Row: {
           id: number
@@ -248,6 +263,8 @@ export type Database = {
           status: 'ok' | 'unknown_athlete' | 'garmin_key_rejected' | 'garmin_unavailable' | 'save_failed'
           imported: number
           linked: number
+          /** Fichiers .FIT lus pendant ce passage (0.5.0). */
+          details: number
         }
         Insert: never
         Update: never
@@ -375,4 +392,5 @@ export type WorkoutActivity = PublicSchema['Views']['workout_activity']['Row']
 export type Conversation = PublicSchema['Views']['conversations']['Row']
 export type GarminActivity = PublicSchema['Tables']['garmin_activities']['Row']
 export type GarminActivityInsert = PublicSchema['Tables']['garmin_activities']['Insert']
+export type GarminActivityDetailRow = PublicSchema['Tables']['garmin_activity_details']['Row']
 export type GarminSyncRun = PublicSchema['Tables']['garmin_sync_runs']['Row']

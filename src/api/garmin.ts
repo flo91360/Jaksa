@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import { addDays, type IsoDate, todayIso } from '../domain/calendar.ts'
 import { type GarminSummary, importErrorMessage, importRange, planImport, summaryToActivity } from '../domain/garmin.ts'
-import type { GarminActivity, GarminActivityInsert, GarminSyncRun } from '../lib/database.types.ts'
+import { type ActivityDetail, isActivityDetail } from '../domain/activityDetail.ts'
+import type { GarminActivity, GarminActivityDetailRow, GarminActivityInsert, GarminSyncRun } from '../lib/database.types.ts'
 import { supabase } from '../lib/supabase.ts'
 
 /** Activité Garmin rattachée à une séance (la première de la journée s'il y en a plusieurs). */
@@ -130,11 +131,14 @@ export function useGarminImport(athleteId: string) {
   })
 }
 
-/** Coach : activités Garmin sans séance (sorties libres) de ses athlètes, entre deux dates. */
-export function useFreeGarminActivities(athleteIds: string[], from: IsoDate, to: IsoDate) {
+/**
+ * Coach : activités Garmin de ses athlètes entre deux dates, rattachées ou non à une séance.
+ * Celles sans séance sont les sorties libres du planning.
+ */
+export function useGarminActivitiesInRange(athleteIds: string[], from: IsoDate, to: IsoDate) {
   const ids = [...athleteIds].sort()
   return useQuery({
-    queryKey: ['garmin-activities', 'free', ids, from, to],
+    queryKey: ['garmin-activities', 'range', ids, from, to],
     enabled: ids.length > 0,
     retry: false,
     queryFn: async (): Promise<GarminActivity[]> => {
@@ -142,12 +146,54 @@ export function useFreeGarminActivities(athleteIds: string[], from: IsoDate, to:
         .from('garmin_activities')
         .select('*')
         .in('athlete_id', ids)
-        .is('workout_id', null)
         .gte('local_date', from)
         .lte('local_date', to)
         .order('start_time')
       if (error) throw error
       return data
+    },
+  })
+}
+
+/** Une activité Garmin (page d'une sortie libre). */
+export function useGarminActivity(activityId: string) {
+  return useQuery({
+    queryKey: ['garmin-activities', 'one', activityId],
+    enabled: activityId !== '',
+    retry: false,
+    queryFn: async (): Promise<GarminActivity | null> => {
+      const { data, error } = await supabase.from('garmin_activities').select('*').eq('id', activityId).maybeSingle()
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export type ActivityDetailState =
+  | { state: 'ok'; detail: ActivityDetail; fetchedAt: string }
+  /** Pas encore lu : arrivera avec un prochain passage de l'import automatique. */
+  | { state: 'pending' }
+  /** Garmin n'a pas de fichier, ou il est illisible. */
+  | { state: 'missing'; status: Exclude<GarminActivityDetailRow['status'], 'ok'> }
+
+/** Détail (.FIT) d'une activité : courbes, tours, chiffres de la montre. */
+export function useActivityDetail(activityId: string | null) {
+  return useQuery({
+    queryKey: ['garmin-activities', 'detail', activityId],
+    enabled: !!activityId,
+    retry: false,
+    // Rien n'arrive plus souvent que l'import automatique.
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<ActivityDetailState> => {
+      const { data, error } = await supabase
+        .from('garmin_activity_details')
+        .select('*')
+        .eq('activity_id', activityId ?? '')
+        .maybeSingle()
+      if (error) throw error
+      if (!data) return { state: 'pending' }
+      if (data.status === 'ok' && isActivityDetail(data.data)) return { state: 'ok', detail: data.data, fetchedAt: data.fetched_at }
+      return { state: 'missing', status: data.status === 'ok' ? 'unreadable' : data.status }
     },
   })
 }

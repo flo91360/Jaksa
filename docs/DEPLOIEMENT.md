@@ -268,6 +268,12 @@ le site au plus tard un quart d'heure après, pour l'athlète comme pour le coac
 **Cron** → `rob1coach-garmin-import`, ou dans le SQL Editor
 `select * from public.garmin_sync_runs order by ran_at desc limit 10;`.
 
+**Détail des activités (0.5.0)** : à chaque passage, la fonction lit aussi le fichier `.FIT` de deux activités
+récentes (courbes, tours), sans aucun réglage de plus. Pour vérifier : la colonne `details` de `garmin_sync_runs`, ou
+`select status, count(*) from public.garmin_activity_details group by status;`. Si tout est en `no_file`, Garmin ne
+sert pas le fichier à l'adresse attendue (`/download-service/files/activity/{id}`) : la page de la séance affiche
+alors seulement les chiffres du résumé.
+
 Garmin prévient par e-mail une semaine avant l'expiration de la clé. Pour la renouveler : créer une nouvelle clé
 (étape 1) et remplacer `GARMIN_PERSONAL_API_KEY` (étape 2). Pour tout arrêter : supprimer la clé dans Garmin Connect,
 ce qui coupe aussitôt l'accès.

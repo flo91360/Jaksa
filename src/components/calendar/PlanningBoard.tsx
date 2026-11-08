@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { useWorkoutActivity } from '../../api/exchanges.ts'
-import { useFreeGarminActivities } from '../../api/garmin.ts'
+import { useGarminActivitiesInRange } from '../../api/garmin.ts'
 import { useCreateWorkouts, useRaces, useUpdateWorkout, useWorkouts } from '../../api/planning.ts'
 import {
   type CalendarView,
@@ -49,7 +49,8 @@ export function PlanningBoard({ athletes, multi }: { athletes: AthleteOption[]; 
   const races = useRaces(ids, range.from, range.to)
   const activity = useWorkoutActivity(ids, range.from, range.to)
   // Absentes tant que la migration de la 0.4.0 n'est pas appliquée : la requête échoue sans bruit.
-  const freeActivities = useFreeGarminActivities(ids, range.from, range.to)
+  const garminActivities = useGarminActivitiesInRange(ids, range.from, range.to)
+  const navigate = useNavigate()
   const update = useUpdateWorkout()
   const create = useCreateWorkouts()
   const [editing, setEditing] = useState<Editing>(null)
@@ -65,6 +66,28 @@ export function PlanningBoard({ athletes, multi }: { athletes: AthleteOption[]; 
   }
 
   const list = workouts.data ?? []
+  const freeActivities = (garminActivities.data ?? []).filter((a) => a.workout_id === null)
+  /** Séances qui ont une activité de la montre : courbes et tours à voir. */
+  const watched = new Set((garminActivities.data ?? []).map((a) => a.workout_id).filter((id) => id !== null))
+
+  // « Modifier la séance » depuis la page d'une séance : ?modifier=<id> ouvre l'éditeur.
+  const toEdit = params.get('modifier')
+  const toEditWorkout = toEdit ? list.find((w) => w.id === toEdit) : undefined
+  const shown: Editing = editing ?? (toEditWorkout ? { type: 'workout', workout: toEditWorkout } : null)
+  const close = () => {
+    setEditing(null)
+    if (toEdit) {
+      const next = new URLSearchParams(params)
+      next.delete('modifier')
+      setParams(next, { replace: true })
+    }
+  }
+
+  /** Une séance faite (retour ou montre) s'ouvre sur son détail : chiffres, graphiques, retour. Sinon, l'éditeur. */
+  const openWorkout = (workout: Workout) => {
+    if (activity.data?.get(workout.id)?.status || watched.has(workout.id)) navigate(`/seance/${workout.id}`)
+    else setEditing({ type: 'workout', workout })
+  }
 
   const drop = (workout: Workout, target: { athleteId: string; date: IsoDate }, copy: boolean) => {
     setNotice(null)
@@ -152,44 +175,45 @@ export function PlanningBoard({ athletes, multi }: { athletes: AthleteOption[]; 
         workouts={list}
         races={races.data ?? []}
         activity={activity.data}
-        freeActivities={freeActivities.data}
+        freeActivities={freeActivities}
+        watched={watched}
         multi={multi}
-        onOpenWorkout={(workout) => setEditing({ type: 'workout', workout })}
+        onOpenWorkout={openWorkout}
         onCreate={(athleteId, date) => setEditing({ type: 'new-workout', athleteId, date })}
         onOpenRace={(race) => setEditing({ type: 'race', race })}
         onDrop={drop}
         onShowWeek={(date) => go('week', date)}
       />
 
-      {editing?.type === 'workout' && (
+      {shown?.type === 'workout' && (
         <WorkoutEditor
-          workout={editing.workout}
+          workout={shown.workout}
           athletes={athletes}
           existing={list}
-          activity={activity.data?.get(editing.workout.id)}
-          onClose={() => setEditing(null)}
+          activity={activity.data?.get(shown.workout.id)}
+          onClose={close}
         />
       )}
-      {editing?.type === 'new-workout' && (
+      {shown?.type === 'new-workout' && (
         <WorkoutEditor
-          initial={{ athleteId: editing.athleteId ?? undefined, date: editing.date }}
+          initial={{ athleteId: shown.athleteId ?? undefined, date: shown.date }}
           athletes={athletes}
           existing={list}
-          onClose={() => setEditing(null)}
+          onClose={close}
         />
       )}
-      {editing?.type === 'race' && (
-        <RaceEditor athleteId={editing.race.athlete_id} race={editing.race} onClose={() => setEditing(null)} />
+      {shown?.type === 'race' && (
+        <RaceEditor athleteId={shown.race.athlete_id} race={shown.race} onClose={close} />
       )}
-      {editing?.type === 'new-race' && (
-        <RaceEditor athleteId={editing.athleteId} defaultDate={editing.date} onClose={() => setEditing(null)} />
+      {shown?.type === 'new-race' && (
+        <RaceEditor athleteId={shown.athleteId} defaultDate={shown.date} onClose={close} />
       )}
-      {editing?.type === 'duplicate-week' && ids[0] && (
+      {shown?.type === 'duplicate-week' && ids[0] && (
         <DuplicateWeekDialog
           athleteId={ids[0]}
           week={startOfWeek(anchor)}
           workouts={list}
-          onClose={() => setEditing(null)}
+          onClose={close}
           onDone={(message, target) => {
             setEditing(null)
             setNotice(message)

@@ -193,3 +193,75 @@ describe('journal de l’import automatique', () => {
     expect(rows[0].old).toBe(0)
   })
 })
+
+describe('détail des activités (fichiers .FIT)', () => {
+  const detail = { version: 1, series: { t: [0, 5], hr: [120, 125] }, laps: [], session: {} }
+
+  /** Écriture du détail comme la fonction garmin-sync (rôle service, sans RLS). */
+  const saveDetail = (activityId: string, status = 'ok', data: unknown = detail) =>
+    db.query(
+      `insert into public.garmin_activity_details (activity_id, status, data) values ($1, $2, $3)
+       on conflict (activity_id) do update set status = excluded.status, data = excluded.data
+       returning athlete_id`,
+      [activityId, status, data === null ? null : JSON.stringify(data)],
+    )
+
+  it("le coach et l'athlète lisent le détail ; ni un autre athlète, ni un autre coach, ni un visiteur", async () => {
+    const { coachId, athleteId, workoutId } = await setup()
+    const [activity] = await importActivity(athleteId, workoutId)
+    const { rows } = await saveDetail(activity.id)
+    // L'athlète est recopié depuis l'activité.
+    expect(rows[0]).toEqual({ athlete_id: athleteId })
+
+    const sql = `select status, data->'series'->'hr' as hr from public.garmin_activity_details where activity_id = $1`
+    expect(await queryAs(db, coachId, sql, [activity.id])).toEqual([{ status: 'ok', hr: [120, 125] }])
+    expect(await queryAs(db, athleteId, sql, [activity.id])).toEqual([{ status: 'ok', hr: [120, 125] }])
+
+    const other = await createUser(db, { fullName: 'Paul Autre', invitationToken: await createInvitation(db, coachId) })
+    const otherCoach = await createCoach(db, 'Autre coach')
+    expect(await queryAs(db, other, sql, [activity.id])).toEqual([])
+    expect(await queryAs(db, otherCoach, sql, [activity.id])).toEqual([])
+    await expectPgError(queryAs(db, null, sql, [activity.id]), PERMISSION_DENIED)
+  })
+
+  it("personne n'écrit le détail depuis le site, pas même l'athlète", async () => {
+    const { coachId, athleteId } = await setup()
+    const [activity] = await importActivity(athleteId, null)
+    for (const user of [athleteId, coachId]) {
+      await expectPgError(
+        queryAs(db, user, `insert into public.garmin_activity_details (activity_id, status, data) values ($1, 'ok', '{}')`, [
+          activity.id,
+        ]),
+        PERMISSION_DENIED,
+      )
+    }
+    await saveDetail(activity.id)
+    await expectPgError(
+      queryAs(db, athleteId, `update public.garmin_activity_details set status = 'no_file', data = null where activity_id = $1`, [
+        activity.id,
+      ]),
+      PERMISSION_DENIED,
+    )
+  })
+
+  it('un détail en échec ne garde pas de données, un détail lu en a forcément', async () => {
+    const { athleteId } = await setup()
+    const [activity] = await importActivity(athleteId, null)
+    await expectPgError(saveDetail(activity.id, 'no_file', detail), CHECK_VIOLATION)
+    await expectPgError(saveDetail(activity.id, 'ok', null), CHECK_VIOLATION)
+    await saveDetail(activity.id, 'unreadable', null)
+  })
+
+  it("le détail disparaît avec l'activité", async () => {
+    const { athleteId } = await setup()
+    const [activity] = await importActivity(athleteId, null)
+    await saveDetail(activity.id)
+    await queryAs(db, athleteId, 'delete from public.garmin_activities where id = $1', [activity.id])
+    const { rows } = await db.query('select 1 from public.garmin_activity_details where activity_id = $1', [activity.id])
+    expect(rows).toEqual([])
+  })
+
+  it('refuse un détail pour une activité inconnue', async () => {
+    await expectPgError(saveDetail('00000000-0000-0000-0000-000000000000'), FOREIGN_KEY)
+  })
+})
