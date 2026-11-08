@@ -13,8 +13,10 @@ Compter environ une heure la première fois.
    - nom : `rob1coach` ;
    - région : **Europe** (Paris ou Francfort). Ce sont des données de santé, elles restent dans l'UE.
    - mot de passe de la base : fort, à conserver dans un gestionnaire de mots de passe.
-2. Créer les tables et les règles de sécurité. Dans **SQL Editor** → **New query**, coller le contenu de
-   [`supabase/migrations/20261108120000_socle.sql`](../supabase/migrations/20261108120000_socle.sql), puis **Run**.
+2. Créer les tables et les règles de sécurité. Dans **SQL Editor** → **New query**, coller le contenu de chaque
+   fichier de [`supabase/migrations/`](../supabase/migrations/), **dans l'ordre**, et faire **Run** à chaque fois :
+   - `20261108120000_socle.sql` (0.1.0) ;
+   - `20261109090000_planification.sql` (0.2.0 : séances, séances types, courses).
    - Avec la ligne de commande, c'est équivalent : `npx supabase link --project-ref <ref>` puis `npx supabase db push`.
 3. Dans **Authentication** → **Sign In / Providers** → **Email** :
    - garder le fournisseur e-mail activé ;
@@ -71,7 +73,64 @@ Chaque évolution de la base est un nouveau fichier dans `supabase/migrations/`,
 
 Il faut appliquer les fichiers dans l'ordre, une seule fois chacun, et ne jamais modifier une migration déjà appliquée.
 
-## 5. Développer en local
+| Version | Fichier à appliquer |
+|---|---|
+| 0.1.0 | `20261108120000_socle.sql` |
+| 0.2.0 | `20261109090000_planification.sql` |
+
+Pour passer de 0.1.0 à 0.2.0, il suffit donc de coller `20261109090000_planification.sql` dans le SQL Editor
+**avant** de fusionner la pull request (sinon le site déployé cherche des tables qui n'existent pas encore).
+
+## 5. Sauvegarde quotidienne
+
+L'offre gratuite de Supabase ne sauvegarde pas la base. Le dépôt contient une tâche GitHub
+([`.github/workflows/sauvegarde.yml`](../.github/workflows/sauvegarde.yml)) qui, chaque nuit :
+
+- exporte les données (comptes, profils, fiches, séances, courses…) ;
+- les **chiffre** avec une phrase secrète (ce sont des données de santé) ;
+- les conserve **30 jours** dans GitHub, onglet **Actions** → **Sauvegarde de la base** → artefacts.
+
+Tant que les deux secrets ci-dessous manquent, la tâche s'arrête avec un simple avertissement.
+
+### Mise en place (10 minutes)
+
+1. Dans Supabase : bouton **Connect** en haut de la page du projet → **Session pooler** → copier la chaîne
+   de connexion (`postgresql://postgres.<ref>:[YOUR-PASSWORD]@aws-…pooler.supabase.com:5432/postgres`) et y remplacer
+   `[YOUR-PASSWORD]` par le mot de passe de la base. Le « Session pooler » est nécessaire : GitHub ne sait pas joindre
+   la connexion directe.
+2. Choisir une **phrase secrète** longue (5 ou 6 mots) et la ranger dans le gestionnaire de mots de passe. Sans elle,
+   les sauvegardes sont illisibles, y compris pour nous.
+3. Sur GitHub : **Settings** → **Secrets and variables** → **Actions** → **New repository secret** :
+   - `SUPABASE_DB_URL` : la chaîne de connexion ;
+   - `BACKUP_PASSPHRASE` : la phrase secrète.
+4. **Actions** → **Sauvegarde de la base** → **Run workflow** pour un premier essai : un fichier
+   `rob1coach-AAAA-MM-JJ.tar.gz.gpg` doit apparaître dans les artefacts.
+
+L'offre gratuite de GitHub (2 000 minutes par mois pour un dépôt privé) suffit largement : la tâche prend une à deux minutes.
+
+### Restauration
+
+À faire depuis un ordinateur avec `gpg` et `psql` (PostgreSQL 17), dans un projet Supabase **neuf** :
+
+1. Télécharger l'artefact voulu depuis GitHub, puis le déchiffrer :
+
+   ```bash
+   gpg --decrypt rob1coach-AAAA-MM-JJ.tar.gz.gpg | tar -xzf -   # demande la phrase secrète
+   ```
+
+2. Créer la structure : appliquer toutes les migrations dans l'ordre (étape 1.2).
+3. Recharger les comptes puis les données, déclencheurs suspendus (sinon chaque compte recréerait un profil vide) :
+
+   ```bash
+   psql "<chaîne Session pooler du nouveau projet>" --single-transaction -v ON_ERROR_STOP=1 \
+     -c 'set session_replication_role = replica' -f auth.sql -f public.sql
+   ```
+
+4. Reporter la nouvelle URL et la nouvelle clé dans Cloudflare (étape 3.3).
+
+Les mots de passe des comptes sont conservés : coach et athlètes se reconnectent comme avant.
+
+## 6. Développer en local
 
 ```bash
 npm install

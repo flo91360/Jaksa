@@ -2,6 +2,8 @@
  * Types de la base (schéma public), écrits à la main sur le modèle de
  * `supabase gen types typescript`. À tenir à jour avec supabase/migrations.
  */
+import type { RacePriority } from '../domain/planning.ts'
+import type { WorkoutItem, WorkoutKind } from '../domain/workouts.ts'
 import type { HrZone } from '../domain/zones.ts'
 
 export type UserRole = 'coach' | 'athlete'
@@ -108,6 +110,87 @@ export type Database = {
         Update: { body?: string }
         Relationships: []
       }
+      workouts: {
+        Row: {
+          id: string
+          athlete_id: string
+          coach_id: string
+          scheduled_on: string
+          position: number
+          kind: WorkoutKind
+          title: string
+          description: string
+          steps: WorkoutItem[]
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          athlete_id: string
+          scheduled_on: string
+          position?: number
+          kind?: WorkoutKind
+          title: string
+          description?: string
+          steps?: WorkoutItem[]
+        }
+        Update: {
+          scheduled_on?: string
+          position?: number
+          kind?: WorkoutKind
+          title?: string
+          description?: string
+          steps?: WorkoutItem[]
+        }
+        Relationships: []
+      }
+      workout_templates: {
+        Row: {
+          id: string
+          coach_id: string
+          kind: WorkoutKind
+          title: string
+          description: string
+          steps: WorkoutItem[]
+          created_at: string
+          updated_at: string
+        }
+        Insert: { kind?: WorkoutKind; title: string; description?: string; steps?: WorkoutItem[] }
+        Update: { kind?: WorkoutKind; title?: string; description?: string; steps?: WorkoutItem[] }
+        Relationships: []
+      }
+      races: {
+        Row: {
+          id: string
+          athlete_id: string
+          created_by: string | null
+          race_on: string
+          name: string
+          priority: RacePriority
+          distance_km: number | null
+          elevation_gain_m: number | null
+          notes: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          athlete_id: string
+          race_on: string
+          name: string
+          priority?: RacePriority
+          distance_km?: number | null
+          elevation_gain_m?: number | null
+          notes?: string
+        }
+        Update: {
+          race_on?: string
+          name?: string
+          priority?: RacePriority
+          distance_km?: number | null
+          elevation_gain_m?: number | null
+          notes?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       coach_links: {
@@ -133,6 +216,7 @@ export type Database = {
       is_coach_of: { Args: { p_athlete: string }; Returns: boolean }
       is_my_coach: { Args: { p_coach: string }; Returns: boolean }
       my_role: { Args: Record<PropertyKey, never>; Returns: UserRole }
+      workout_steps_are_valid: { Args: { items: WorkoutItem[] }; Returns: boolean }
     }
     Enums: { user_role: UserRole }
     CompositeTypes: Record<PropertyKey, never>
@@ -145,3 +229,11 @@ export type Invitation = PublicSchema['Tables']['invitations']['Row']
 export type AthleteProfile = PublicSchema['Tables']['athlete_profiles']['Row']
 export type AthleteProfileUpdate = PublicSchema['Tables']['athlete_profiles']['Update']
 export type CoachLink = PublicSchema['Views']['coach_links']['Row']
+export type Workout = PublicSchema['Tables']['workouts']['Row']
+export type WorkoutInsert = PublicSchema['Tables']['workouts']['Insert']
+export type WorkoutUpdate = PublicSchema['Tables']['workouts']['Update']
+export type WorkoutTemplate = PublicSchema['Tables']['workout_templates']['Row']
+export type WorkoutTemplateInsert = PublicSchema['Tables']['workout_templates']['Insert']
+export type Race = PublicSchema['Tables']['races']['Row']
+export type RaceInsert = PublicSchema['Tables']['races']['Insert']
+export type RaceUpdate = PublicSchema['Tables']['races']['Update']

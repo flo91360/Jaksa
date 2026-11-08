@@ -102,6 +102,20 @@ export function useUpdateAthleteProfile(athleteId: string) {
   })
 }
 
+/** Fiches de plusieurs athlètes (zones pour le calendrier « tous mes athlètes »). */
+export function useAthleteProfiles(athleteIds: string[]) {
+  const ids = [...athleteIds].sort()
+  return useQuery({
+    queryKey: ['athlete-profiles', ids],
+    enabled: ids.length > 0,
+    queryFn: async (): Promise<AthleteProfile[]> => {
+      const { data, error } = await supabase.from('athlete_profiles').select('*').in('athlete_id', ids)
+      if (error) throw error
+      return data
+    },
+  })
+}
+
 /** Profil (nom, e-mail) d'un athlète vu par son coach. */
 export function useAthleteIdentity(athleteId: string) {
   return useQuery({

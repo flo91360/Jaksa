@@ -1,0 +1,78 @@
+name: Sauvegarde de la base
+
+# Sauvegarde quotidienne de la base Supabase (l'offre gratuite n'en fait pas).
+# Le fichier est chiffré (AES-256) avant d'être conservé 30 jours comme
+# artefact GitHub. Mise en place et restauration : docs/DEPLOIEMENT.md, étape 6.
+#
+# Secrets du dépôt nécessaires :
+#   SUPABASE_DB_URL     chaîne de connexion « Session pooler » du projet
+#   BACKUP_PASSPHRASE   phrase secrète de chiffrement (à garder hors de GitHub aussi)
+
+on:
+  schedule:
+    - cron: '17 2 * * *' # tous les jours vers 3 h ou 4 h (heure de Paris)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sauvegarde
+  cancel-in-progress: false
+
+jobs:
+  sauvegarde:
+    name: Sauvegarde chiffrée
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Vérifier la configuration
+        id: config
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::warning::Sauvegarde non configurée : ajouter les secrets SUPABASE_DB_URL et BACKUP_PASSPHRASE (docs/DEPLOIEMENT.md, étape 6)."
+            echo "pret=non" >> "$GITHUB_OUTPUT"
+          else
+            echo "pret=oui" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Installer pg_dump 17
+        if: steps.config.outputs.pret == 'oui'
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - name: Exporter et chiffrer
+        if: steps.config.outputs.pret == 'oui'
+        run: |
+          set -euo pipefail
+          stamp=$(date -u +%Y-%m-%d)
+          dir=$(mktemp -d)
+          # Données seulement : la structure se recrée avec supabase/migrations.
+          # Comptes (auth.users, auth.identities), puis données de l'application.
+          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" --data-only --schema=public --no-owner --no-privileges \
+            --file="$dir/public.sql"
+          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" --data-only --table=auth.users --table=auth.identities \
+            --file="$dir/auth.sql"
+          tar -C "$dir" -czf - public.sql auth.sql \
+            | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 \
+                --output "rob1coach-$stamp.tar.gz.gpg" 3<<<"$BACKUP_PASSPHRASE"
+          rm -rf "$dir"
+          ls -lh "rob1coach-$stamp.tar.gz.gpg"
+          echo "FICHIER=rob1coach-$stamp.tar.gz.gpg" >> "$GITHUB_ENV"
+
+      - name: Conserver 30 jours
+        if: steps.config.outputs.pret == 'oui'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FICHIER }}
+          path: ${{ env.FICHIER }}
+          retention-days: 30
+          if-no-files-found: error
