@@ -7,10 +7,11 @@ import {
   monthWeeks,
   weekDays,
 } from '../../domain/calendar.ts'
+import { activityFigures, garminSportLabel } from '../../domain/garmin.ts'
 import { groupByDate } from '../../domain/planning.ts'
 import { formatTotals, workoutTotals } from '../../domain/workouts.ts'
 import type { HrZone } from '../../domain/zones.ts'
-import type { Race, Workout, WorkoutActivity } from '../../lib/database.types.ts'
+import type { GarminActivity, Race, Workout, WorkoutActivity } from '../../lib/database.types.ts'
 import { firstName } from '../../lib/format.ts'
 import { PriorityBadge } from '../RaceEditor.tsx'
 import { ActivityBadges } from '../exchanges/ActivityBadges.tsx'
@@ -27,6 +28,8 @@ type Props = {
   races: Race[]
   /** Retours et commentaires, par séance (absent tant que la base n'est pas à jour). */
   activity?: Map<string, WorkoutActivity>
+  /** Activités Garmin sans séance prévue (sorties libres). */
+  freeActivities?: GarminActivity[]
   /** Vue « tous mes athlètes » : une ligne par athlète, noms affichés. */
   multi: boolean
   onOpenWorkout: (workout: Workout) => void
@@ -45,6 +48,7 @@ export function PlanningCalendar(props: Props) {
   const [dragOver, setDragOver] = useState<string | null>(null)
   const byDay = groupByDate(props.workouts, (w) => w.scheduled_on)
   const racesByDay = groupByDate(props.races, (r) => r.race_on)
+  const freeByDay = groupByDate(props.freeActivities ?? [], (a) => a.local_date)
   const athletesById = new Map(props.athletes.map((a) => [a.id, a]))
 
   /** Propriétés d'une case qui accepte le dépôt d'une séance. */
@@ -102,6 +106,20 @@ export function PlanningCalendar(props: Props) {
         </button>
       ))
 
+  /** Courses et sorties libres d'un jour (d'un athlète, ou de tous). */
+  const dayExtras = (date: IsoDate, athleteId: string | null, compact = false) => [
+    ...raceChips(date, athleteId, compact),
+    ...(freeByDay.get(date) ?? [])
+      .filter((a) => athleteId === null || a.athlete_id === athleteId)
+      .map((a) => (
+        <FreeActivityChip
+          key={a.id}
+          activity={a}
+          athleteName={props.multi && !compact ? firstName(athletesById.get(a.athlete_id)?.name ?? '') : ''}
+        />
+      )),
+  ]
+
   if (props.view === 'month') {
     const weeks = monthWeeks(props.anchor)
     return (
@@ -139,7 +157,7 @@ export function PlanningCalendar(props: Props) {
                       onClick={() => props.onCreate(props.multi ? null : (props.athletes[0]?.id ?? null), date)}
                     />
                   </div>
-                  {raceChips(date, null, true)}
+                  {dayExtras(date, null, true)}
                   {/* Téléphone : pastilles ; ordinateur : titres. */}
                   <div className="flex flex-wrap gap-1 sm:hidden">
                     {items.map((workout) => (
@@ -187,7 +205,7 @@ export function PlanningCalendar(props: Props) {
             dropProps={dropZone(`w-${date}`, date, athleteId)}
             onAdd={() => props.onCreate(athleteId, date)}
           >
-            {raceChips(date, athleteId)}
+            {dayExtras(date, athleteId)}
             {(byDay.get(date) ?? []).map((workout) => card(workout))}
           </DayColumn>
         ))}
@@ -224,7 +242,7 @@ export function PlanningCalendar(props: Props) {
                     {...dropZone(`${athlete.id}-${date}`, date, athlete.id)}
                     className={`group min-h-20 space-y-1 border-b border-l border-slate-100 p-1.5 data-drop-active:bg-emerald-50 ${date === props.today ? 'bg-emerald-50/40' : ''}`}
                   >
-                    {raceChips(date, athlete.id, true)}
+                    {dayExtras(date, athlete.id, true)}
                     {items.map((workout) => card(workout, { compact: true }))}
                     <AddButton
                       label={`Ajouter une séance pour ${athlete.name} le ${date}`}
@@ -243,7 +261,7 @@ export function PlanningCalendar(props: Props) {
       <div className="space-y-2 md:hidden">
         {days.map((date) => (
           <DayColumn key={date} date={date} today={props.today} dropProps={{}} onAdd={() => props.onCreate(null, date)}>
-            {raceChips(date, null)}
+            {dayExtras(date, null)}
             {(byDay.get(date) ?? []).map((workout) => card(workout, { showName: true }))}
           </DayColumn>
         ))}
@@ -338,5 +356,31 @@ function WorkoutCard({
       {totals && <span className={`block truncate text-slate-500 ${compact ? 'text-[11px]' : 'text-xs'}`}>{totals}</span>}
       <ActivityBadges activity={activity} compact={compact} />
     </button>
+  )
+}
+
+/** Sortie Garmin sans séance prévue : le coach la voit dans le planning, chiffres au survol. */
+function FreeActivityChip({ activity, athleteName }: { activity: GarminActivity; athleteName: string }) {
+  const figures = activityFigures(activity)
+  const short = figures
+    .filter(([label]) => label === 'Durée' || label === 'Distance')
+    .map(([, value]) => value)
+    .join(' · ')
+  const detail = figures.map(([label, value]) => `${label} ${value}`).join(' · ')
+  const title = `Sortie libre (Garmin) : ${activity.name || garminSportLabel(activity.activity_type)}${detail ? ` — ${detail}` : ''}`
+  return (
+    <div
+      title={title}
+      aria-label={title}
+      className="w-full min-w-0 rounded-lg border border-dashed border-sky-300 bg-sky-50 px-1.5 py-1 text-xs text-sky-950"
+    >
+      <span className="block truncate font-semibold">
+        ⌚ {athleteName ? `${athleteName} · ` : ''}
+        Sortie libre
+      </span>
+      <span className="block truncate text-[11px] text-sky-800">
+        {[garminSportLabel(activity.activity_type), short].filter(Boolean).join(' · ')}
+      </span>
+    </div>
   )
 }

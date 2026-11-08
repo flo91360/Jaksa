@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { useWorkoutActivity } from '../../api/exchanges.ts'
+import { useFreeGarminActivities } from '../../api/garmin.ts'
 import { useCreateWorkouts, useRaces, useUpdateWorkout, useWorkouts } from '../../api/planning.ts'
 import {
   type CalendarView,
@@ -47,6 +48,8 @@ export function PlanningBoard({ athletes, multi }: { athletes: AthleteOption[]; 
   const workouts = useWorkouts(ids, range.from, range.to)
   const races = useRaces(ids, range.from, range.to)
   const activity = useWorkoutActivity(ids, range.from, range.to)
+  // Absentes tant que la migration de la 0.4.0 n'est pas appliquée : la requête échoue sans bruit.
+  const freeActivities = useFreeGarminActivities(ids, range.from, range.to)
   const update = useUpdateWorkout()
   const create = useCreateWorkouts()
   const [editing, setEditing] = useState<Editing>(null)
@@ -149,6 +152,7 @@ export function PlanningBoard({ athletes, multi }: { athletes: AthleteOption[]; 
         workouts={list}
         races={races.data ?? []}
         activity={activity.data}
+        freeActivities={freeActivities.data}
         multi={multi}
         onOpenWorkout={(workout) => setEditing({ type: 'workout', workout })}
         onCreate={(athleteId, date) => setEditing({ type: 'new-workout', athleteId, date })}

@@ -116,6 +116,23 @@ describe('rattachement aux séances', () => {
     expect(result.get(2)).toBe('trail')
   })
 
+  it('séance faite avec un jour de retard : rattachée à la séance de la veille encore libre', () => {
+    const result = matchActivities(
+      [activity(1, '2026-11-11', '07:00:00'), activity(2, '2026-11-12', '07:00:00')],
+      [workout('mardi', '2026-11-10'), workout('mercredi', '2026-11-11')],
+    )
+    // Mercredi : la séance du jour passe avant celle de la veille ; jeudi : rien le jour même, la veille est prise.
+    expect(result.get(1)).toBe('mercredi')
+    expect(result.get(2)).toBeNull()
+    const late = matchActivities([activity(3, '2026-11-11', '07:00:00')], [workout('mardi', '2026-11-10')])
+    expect(late.get(3)).toBe('mardi')
+  })
+
+  it('jamais sur la séance du lendemain', () => {
+    const result = matchActivities([activity(1, '2026-11-10', '07:00:00')], [workout('mercredi', '2026-11-11')])
+    expect(result.get(1)).toBeNull()
+  })
+
   it('garde les rattachements déjà enregistrés', () => {
     const result = matchActivities(
       [activity(1, '2026-11-10', '07:00:00'), activity(2, '2026-11-10', '18:00:00')],
