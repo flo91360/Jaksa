@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router'
 import { HomeRedirect, PublicOnly, RequireAuth, RequireRole } from './auth/guards.tsx'
 import { AppLayout } from './components/AppLayout.tsx'
 import { AccountPage } from './pages/AccountPage.tsx'
+import { ActivityPage } from './pages/ActivityPage.tsx'
 import { InvitationPage } from './pages/InvitationPage.tsx'
 import { LoginPage } from './pages/LoginPage.tsx'
 import { MessagesPage } from './pages/MessagesPage.tsx'
@@ -96,6 +97,7 @@ export function App() {
         />
         <Route path="messages" element={<MessagesPage />} />
         <Route path="seance/:workoutId" element={<WorkoutPage />} />
+        <Route path="activite/:activityId" element={<ActivityPage />} />
         <Route path="compte" element={<AccountPage />} />
       </Route>
 

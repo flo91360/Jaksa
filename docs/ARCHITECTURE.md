@@ -50,6 +50,7 @@ chaque requête est faite au nom de l'utilisateur connecté, et les règles RLS
 | `conversations` (vue, 0.3.0) | Par lien coach ↔ athlète : dernier message, nombre de non-lus |
 | `email_outbox` (0.3.0) | File d'attente des e-mails, inaccessible depuis le site |
 | `garmin_sync_runs` (0.4.1) | Journal de l'import automatique : heure, résultat, nombre d'activités (un mois) |
+| `garmin_activity_details` (0.5.0) | Détail d'une activité, lu dans son fichier `.FIT` : séries de FC, vitesse, altitude, cadence, puissance et tracé GPS (1 800 points au plus), tours, chiffres de la montre |
 | `garmin_activities` (0.4.0) | Activités importées depuis Garmin : identifiant Garmin, séance rattachée, durée, distance, D+, FC moyenne et max |
 
 Zones (`athlete_profiles.zones`) : tableau de 7 zones au plus, chacune de la forme
@@ -94,6 +95,7 @@ quand le coach les met à jour. La base vérifie ce format (`workout_steps_are_v
 | Messages | sa conversation avec chaque athlète | sa conversation avec son coach | — |
 | File d'attente des e-mails | **jamais** | **jamais** | — |
 | Activités Garmin | lit | importe, lit, supprime les siennes | — |
+| Détail des activités (.FIT) | lit | lit (seule la fonction `garmin-sync` écrit) | — |
 
 Ces règles sont vérifiées automatiquement par `tests/db/socle.test.ts`, `tests/db/planification.test.ts` et
 `tests/db/echanges.test.ts` et `tests/db/garmin.test.ts`. Un message ou un commentaire ne se modifie pas ; « lu » et « vu par le coach » ne
@@ -148,6 +150,22 @@ Site (athlète connecté) ──► fonction Supabase garmin-import ──► AP
   de course ou de trail, le vélo sur « autre sport »), une activité par séance, dans l'ordre de la journée. Un
   rattachement déjà enregistré n'est pas changé par un nouvel import.
 - Les activités sans séance (sorties libres) apparaissent dans le planning du coach, le jour où elles ont été faites.
+
+### Détail d'une activité (0.5.0)
+
+- À chaque passage, `garmin-sync` télécharge aussi le fichier d'origine (archive ZIP contenant le `.FIT`) de deux
+  activités récentes au plus qui n'ont pas encore de détail : `GET /download-service/files/activity/{id}`, avec le
+  même jeton. Le `.FIT` est lu par le SDK officiel de Garmin (`npm:@garmin/fitsdk`, dans la fonction seulement),
+  puis réduit par `supabase/functions/_shared/garmin-detail.ts` : 1 800 points au plus par série (moyenne par tranche
+  de temps), les tours et les chiffres d'ensemble de la montre. Résultat : environ 100 Ko de JSON par heure de sortie.
+- Deux fichiers par passage, parce que le décodage consomme du temps de calcul (limité à 2 s par appel sur l'offre
+  gratuite). Un fichier absent ou illisible est noté (`no_file`, `unreadable`) et redemandé au plus toutes les 6 h.
+- Le site (`src/domain/activityDetail.ts`) en tire les courbes (FC sur fond de zones, allure lissée sur 20 s,
+  altitude, cadence, puissance : un graphique par mesure, sur le même axe du temps), le temps passé dans chaque zone
+  de FC de la fiche de l'athlète, les tours, et la comparaison étape par étape avec la séance prévue quand la montre
+  l'a suivie (autant de tours que d'étapes).
+- Un clic du coach sur une séance faite (retour ou activité de la montre, ⌚) ouvre sa page détaillée ; une séance à
+  venir ouvre toujours l'éditeur. Un clic sur une sortie libre ouvre `/activite/:id`.
 - Le retour de séance est pré-rempli avec la durée, la distance et le D+ mesurés par la montre.
 - Avec le niveau Starter, Garmin enverra lui-même les activités au site : la lecture chez Garmin sera à refaire, mais
   pas la table, le rattachement ni l'affichage.

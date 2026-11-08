@@ -6,11 +6,14 @@
 //      POST /personalapitoken-service/personal-api/personal-api-key/token, en-tête « Authorization: ApiKey <clé> » ;
 //   2. le jeton lit la liste des activités :
 //      GET /activitylist-service/activities/search/activities?startDate=…&endDate=…
+//   3. (0.5.0) le même jeton télécharge le fichier .FIT d'origine de chaque activité, dans une archive ZIP :
+//      GET /download-service/files/activity/{activityId}
 // Un nouveau jeton est demandé à chaque import : il n'est jamais stocké.
 
 export const GARMIN_BASE = 'https://personal.connectapi.garmin.com'
 const TOKEN_PATH = '/personalapitoken-service/personal-api/personal-api-key/token'
 const LIST_PATH = '/activitylist-service/activities/search/activities'
+const FILE_PATH = '/download-service/files/activity/'
 
 /** Nombre de jours au plus par import. */
 export const MAX_RANGE_DAYS = 31
@@ -44,6 +47,8 @@ export type Fetch = (url: string, init?: { method?: string; headers?: Record<str
   ok: boolean
   status: number
   text: () => Promise<string>
+  /** Pour le téléchargement des fichiers .FIT. */
+  arrayBuffer?: () => Promise<ArrayBuffer>
 }>
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -102,7 +107,9 @@ function readToken(body: string): string | null {
   return token.split('.').length === 3 ? token : null
 }
 
-export type FetchResult = { activities: GarminSummary[] } | { error: 'garmin_key_rejected' | 'garmin_unavailable' }
+export type FetchResult =
+  | { activities: GarminSummary[]; /** Jeton d'accès, réutilisable pour les fichiers .FIT pendant ce passage. */ token: string }
+  | { error: 'garmin_key_rejected' | 'garmin_unavailable' }
 
 /** Échange la clé contre un jeton, puis lit les activités de la période. */
 export async function fetchGarminActivities(
@@ -135,7 +142,29 @@ export async function fetchGarminActivities(
     const activities = (Array.isArray(list) ? list : [])
       .map(pickSummary)
       .filter((a): a is GarminSummary => a !== null)
-    return { activities }
+    return { activities, token }
+  } catch {
+    return { error: 'garmin_unavailable' }
+  }
+}
+
+/** Taille maximale d'une archive téléchargée (une sortie de 24 h fait quelques Mo). */
+const MAX_FILE_BYTES = 20 * 1024 * 1024
+
+export type FileResult = { bytes: Uint8Array } | { error: 'not_found' | 'garmin_key_rejected' | 'garmin_unavailable' }
+
+/** Télécharge le fichier d'origine d'une activité (archive ZIP contenant le .FIT). */
+export async function fetchActivityFile(token: string, activityId: number, fetchImpl: Fetch): Promise<FileResult> {
+  try {
+    const response = await fetchImpl(`${GARMIN_BASE}${FILE_PATH}${activityId}`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/zip, application/octet-stream' },
+    })
+    if (response.status === 401 || response.status === 403) return { error: 'garmin_key_rejected' }
+    if (response.status === 404) return { error: 'not_found' }
+    if (!response.ok || !response.arrayBuffer) return { error: 'garmin_unavailable' }
+    const buffer = await response.arrayBuffer()
+    if (buffer.byteLength === 0 || buffer.byteLength > MAX_FILE_BYTES) return { error: 'not_found' }
+    return { bytes: new Uint8Array(buffer) }
   } catch {
     return { error: 'garmin_unavailable' }
   }
@@ -168,5 +197,7 @@ export async function handleImport({
   const range = parseRange(body)
   if (!range) return { status: 400, body: { error: 'bad_range' } }
   const result = await fetchGarminActivities(apiKey, range, fetchImpl)
-  return 'error' in result ? { status: 502, body: { error: result.error } } : { status: 200, body: result }
+  return 'error' in result
+    ? { status: 502, body: { error: result.error } }
+    : { status: 200, body: { activities: result.activities } }
 }

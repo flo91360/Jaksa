@@ -63,8 +63,8 @@ Chaque version passe par une pull request et des tests automatiques.
 avec le niveau Personal, sur le seul compte Garmin de Florian (voir « Garmin : le point bloquant ») :
 
 - import de ses activités des 14 derniers jours (résumé JSON : durée, distance, D+, FC moyenne et max),
-  rattachées à la séance prévue le même jour ; la lecture des fichiers `.FIT` (tours, courbe de FC)
-  viendra avec le calcul de charge de la 0.5.0 ;
+  rattachées à la séance prévue le même jour ; la lecture des fichiers `.FIT` (tours, courbes de FC,
+  d'allure et d'altitude) est faite depuis la 0.5.0 ;
 - affichage de ces données sous la séance, pour l'athlète et son coach, et pré-remplissage du retour ;
 - import automatique toutes les 15 minutes (0.4.1), puisque ce niveau ne prévient pas à chaque synchronisation ;
 - but : valider le rattachement aux séances et l'affichage, qui resteront
@@ -81,6 +81,9 @@ avec le niveau Personal, sur le seul compte Garmin de Florian (voir « Garmin : 
 Le coach peut résilier Nolio à partir de cette version.
 
 ### 0.5.0 : le suivi
+
+- **Fait** : page détaillée de chaque séance faite et de chaque sortie libre (chiffres de la montre, prévu / réalisé
+  étape par étape, courbes, temps par zone, tours, tracé GPS), à partir du fichier `.FIT` de l'activité.
 
 - Charge d'entraînement : durée × RPE (méthode de Foster), puis TRIMP à partir de la FC des activités Garmin.
 - Volumes par semaine (km, heures, D+) et courbe forme/fatigue.

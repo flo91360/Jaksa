@@ -1,5 +1,20 @@
 # Journal des versions
 
+## [0.5.0] - 2026-11-08
+
+Le détail des séances.
+
+- **Clic sur une séance faite** dans le planning du coach (retour de l'athlète ou activité de la montre, signalée par ⌚) : une page avec tout ce qui est disponible. Une séance à venir ouvre toujours l'éditeur, et la page détaillée a un lien « Modifier la séance ».
+- **Clic sur une sortie libre** : la même page, sans la partie « prévu ».
+- Sur cette page :
+  - tous les chiffres de la montre : durée, temps en mouvement, distance, allure moyenne et max, FC moyenne et max, D+ et D−, altitudes, cadence, puissance, Training Effect aérobie et anaérobie, calories, température ;
+  - **prévu / réalisé** : durée et distance, puis, si la montre a suivi la séance, chaque étape face à son tour, avec un verdict (dans la cible, plus vite, moins vite, FC au-dessus ou en dessous) ;
+  - **courbes** de FC (sur fond des zones de l'athlète), d'allure, d'altitude, de cadence et de puissance, avec un curseur commun qui lit toutes les valeurs à un instant ;
+  - **temps passé dans chaque zone** de FC de la fiche de l'athlète ;
+  - **tours** (durée, distance, allure, FC, D+, cadence) et **tracé GPS** ;
+  - le retour de l'athlète (RPE, douleurs) et les commentaires, comme avant.
+- L'import automatique lit maintenant le fichier `.FIT` des activités des 14 derniers jours (deux par passage, toutes les 15 minutes). Rien à régler : la migration et la fonction sont déployées à la fusion.
+
 ## [0.4.2] - 2026-11-08
 
 - **Séance faite avec un jour de retard** : une activité Garmin sans séance prévue le jour même est rattachée à la séance de la veille, si celle-ci n'a pas encore d'activité. Jamais à celle du lendemain, qui n'a peut-être pas encore été courue.

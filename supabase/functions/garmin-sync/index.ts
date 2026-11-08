@@ -5,8 +5,20 @@
 //
 // Secrets (Edge Functions → Secrets) : GARMIN_PERSONAL_API_KEY et GARMIN_ATHLETE_EMAIL, comme garmin-import.
 // SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont fournis par Supabase.
+// Depuis la 0.5.0, elle lit aussi le fichier .FIT des activités récentes (deux par passage au plus) :
+// séries de FC, d'allure, d'altitude, tracé GPS et tours, enregistrés dans garmin_activity_details.
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { Decoder, Stream } from 'npm:@garmin/fitsdk@21'
+import type { DecodeFit, FitMessages } from '../_shared/garmin-detail.ts'
 import { runSync, type SyncDb } from '../_shared/garmin-sync.ts'
+
+/** Lecture des .FIT avec le SDK officiel de Garmin (tours, courbes de FC, d'allure, d'altitude). */
+const decodeFit: DecodeFit = (bytes) => {
+  const decoder = new Decoder(Stream.fromByteArray(Array.from(bytes)))
+  if (!decoder.isFIT()) return null
+  const { messages } = decoder.read({ convertTypesToStrings: true, mergeHeartRates: true })
+  return messages as FitMessages
+}
 
 Deno.serve(async (request: Request) => {
   if (request.method !== 'POST') return new Response(null, { status: 405 })
@@ -51,6 +63,33 @@ Deno.serve(async (request: Request) => {
         .upsert(rows.map((row) => ({ ...row, athlete_id: athleteId })), { onConflict: 'athlete_id,garmin_activity_id' })
       if (error) throw error
     },
+    async pendingDetails(athleteId, since, retryBefore, limit) {
+      const { data, error } = await supabase
+        .from('garmin_activities')
+        .select('id, garmin_activity_id, garmin_activity_details(status, fetched_at)')
+        .eq('athlete_id', athleteId)
+        .gte('start_time', since)
+        .order('start_time', { ascending: false })
+        .limit(100)
+      if (error) throw error
+      type Detail = { status: string; fetched_at: string }
+      type Row = { id: string; garmin_activity_id: number; garmin_activity_details: Detail | Detail[] | null }
+      return (data as Row[])
+        .filter((row) => {
+          // Relation un-pour-un : PostgREST renvoie un objet (un tableau selon les versions).
+          const embedded = row.garmin_activity_details
+          const detail = Array.isArray(embedded) ? (embedded[0] ?? null) : embedded
+          return !detail || (detail.status !== 'ok' && detail.fetched_at < retryBefore)
+        })
+        .slice(0, limit)
+        .map((row) => ({ id: row.id, garmin_activity_id: Number(row.garmin_activity_id) }))
+    },
+    async saveDetail(row) {
+      const { error } = await supabase
+        .from('garmin_activity_details')
+        .upsert({ ...row, fetched_at: new Date().toISOString() }, { onConflict: 'activity_id' })
+      if (error) throw error
+    },
     async log(entry) {
       await supabase.from('garmin_sync_runs').insert(entry)
     },
@@ -63,6 +102,7 @@ Deno.serve(async (request: Request) => {
       now: Date.now(),
       fetchImpl: fetch,
       db,
+      decodeFit,
     })
     return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } })
   } catch {
