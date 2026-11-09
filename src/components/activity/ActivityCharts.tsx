@@ -99,7 +99,7 @@ export function ActivityCharts({
         values: series.hr,
         range,
         mean: seriesMean(series.hr),
-        color: '#e11d48',
+        color: 'var(--color-rose-600)',
         format: (v) => `${Math.round(v)} bpm`,
         bands: zones
           .filter((z) => z.hr_min !== null || z.hr_max !== null)
@@ -119,7 +119,7 @@ export function ActivityCharts({
         values: pace,
         range,
         mean,
-        color: '#047857',
+        color: 'var(--color-emerald-700)',
         inverted: foot,
         format: (v) => (foot ? `${formatPace(v)} /km` : `${v.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km/h`),
       })
@@ -133,7 +133,7 @@ export function ActivityCharts({
         values: series.altitude,
         range,
         mean: null,
-        color: '#57534e',
+        color: 'var(--color-stone-600)',
         area: true,
         format: (v) => `${Math.round(v)} m`,
       })
@@ -148,7 +148,7 @@ export function ActivityCharts({
         values: cadence,
         range,
         mean: seriesMean(cadence),
-        color: '#7c3aed',
+        color: 'var(--color-violet-600)',
         format: (v) => `${Math.round(v)} ${foot ? 'pas/min' : 'tr/min'}`,
       })
   }
@@ -161,7 +161,7 @@ export function ActivityCharts({
         values: series.power,
         range,
         mean: seriesMean(series.power),
-        color: '#b45309',
+        color: 'var(--color-amber-700)',
         format: (v) => `${Math.round(v)} W`,
       })
   }
@@ -319,7 +319,7 @@ function ChartPanel({
         })}
         {valueTicks(chart.range).map((v) => (
           <g key={v}>
-            <line x1={MARGIN.left} x2={right} y1={y(v)} y2={y(v)} stroke="#e2e8f0" strokeWidth={1} />
+            <line x1={MARGIN.left} x2={right} y1={y(v)} y2={y(v)} strokeWidth={1} className="stroke-slate-200" />
             <text x={MARGIN.left - 6} y={y(v)} dy="0.32em" textAnchor="end" className="fill-slate-500 text-[10px] tabular-nums">
               {chart.format(v).replace(/ (bpm|\/km|m|km\/h|pas\/min|tr\/min|W)$/, '')}
             </text>
@@ -332,7 +332,7 @@ function ChartPanel({
             x2={x(start)}
             y1={MARGIN.top}
             y2={bottom}
-            stroke="#cbd5e1"
+            className="stroke-slate-300"
             strokeWidth={1}
             strokeDasharray="2 3"
           />
@@ -341,8 +341,8 @@ function ChartPanel({
           <rect x={MARGIN.left} y={MARGIN.top - 1} width={Math.max(0, right - MARGIN.left)} height={plotHeight + 2} />
         </clipPath>
         <g clipPath={`url(#${clipId})`}>
-          {area && <path d={area} fill={chart.color} opacity={0.14} />}
-          <path d={line} fill="none" stroke={chart.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+          {area && <path d={area} style={{ fill: chart.color }} opacity={0.14} />}
+          <path d={line} fill="none" style={{ stroke: chart.color }} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
         </g>
         {chart.mean !== null && chart.mean >= low && chart.mean <= high && (
           <g>
@@ -351,7 +351,7 @@ function ChartPanel({
               x2={right}
               y1={y(chart.mean)}
               y2={y(chart.mean)}
-              stroke="#0f172a"
+              className="stroke-slate-900"
               strokeWidth={1}
               strokeDasharray="6 4"
               opacity={0.55}
@@ -360,8 +360,7 @@ function ChartPanel({
               x={right - 4}
               y={y(chart.mean) - 4}
               textAnchor="end"
-              className="fill-slate-800 text-[10px] font-semibold tabular-nums"
-              stroke="#fff"
+              className="fill-slate-800 stroke-white text-[10px] font-semibold tabular-nums"
               strokeWidth={3}
               paintOrder="stroke"
             >
@@ -377,9 +376,9 @@ function ChartPanel({
           ))}
         {hover !== null && (
           <>
-            <line x1={x(t[hover])} x2={x(t[hover])} y1={MARGIN.top} y2={bottom} stroke="#0f172a" strokeWidth={1} opacity={0.5} />
+            <line x1={x(t[hover])} x2={x(t[hover])} y1={MARGIN.top} y2={bottom} strokeWidth={1} opacity={0.5} className="stroke-slate-900" />
             {hoverValue !== null && hoverValue !== undefined && (
-              <circle cx={x(t[hover])} cy={yIn(hoverValue)} r={4} fill={chart.color} stroke="#fff" strokeWidth={2} />
+              <circle cx={x(t[hover])} cy={yIn(hoverValue)} r={4} style={{ fill: chart.color }} className="stroke-white" strokeWidth={2} />
             )}
           </>
         )}

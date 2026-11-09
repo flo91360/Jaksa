@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useRealtimeExchanges, useUnreadMessageCount } from '../api/exchanges.ts'
 import { useMyProfile } from '../api/profile.ts'
+import { ThemeToggle } from './ThemeToggle.tsx'
 import { UnreadBadge } from './ui.tsx'
 import type { UserRole } from '../lib/database.types.ts'
 
@@ -62,7 +63,10 @@ export function AppLayout() {
               </NavLink>
             ))}
           </nav>
-          {profile && <span className="truncate text-sm text-slate-500 md:hidden">{profile.full_name}</span>}
+          <div className="flex min-w-0 items-center gap-1">
+            {profile && <span className="truncate text-sm text-slate-500 md:hidden">{profile.full_name}</span>}
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 

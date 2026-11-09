@@ -327,7 +327,7 @@ export function Modal({
         event.preventDefault()
         onClose()
       }}
-      className={`m-0 h-dvh max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-slate-900/50 sm:m-auto sm:h-auto sm:max-h-[90dvh] sm:rounded-2xl ${wide ? 'sm:max-w-3xl' : 'sm:max-w-lg'}`}
+      className={`m-0 h-dvh max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-black/60 sm:m-auto sm:h-auto sm:max-h-[90dvh] sm:rounded-2xl ${wide ? 'sm:max-w-3xl' : 'sm:max-w-lg'}`}
     >
       <div className="flex h-full max-h-[inherit] flex-col bg-white sm:rounded-2xl">
         <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-6">
