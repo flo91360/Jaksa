@@ -5,6 +5,8 @@ import { BrowserRouter } from 'react-router'
 import { App } from './App.tsx'
 import { AuthProvider } from './auth/AuthProvider.tsx'
 import './index.css'
+// Applique le thème clair ou sombre et suit les changements du système.
+import './lib/theme.ts'
 import { isSupabaseConfigured } from './lib/supabase.ts'
 import { ConfigMissingPage } from './pages/MiscPages.tsx'
 

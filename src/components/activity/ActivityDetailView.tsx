@@ -338,9 +338,9 @@ function RouteCard({ detail }: { detail: ActivityDetail }) {
         role="img"
         aria-label="Tracé GPS de la sortie (départ en vert, arrivée en rouge)"
       >
-        <path d={route.d} fill="none" stroke="#047857" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
-        <circle cx={route.start[0]} cy={route.start[1]} r={5} fill="#10b981" stroke="#fff" strokeWidth={2} />
-        <circle cx={route.end[0]} cy={route.end[1]} r={5} fill="#dc2626" stroke="#fff" strokeWidth={2} />
+        <path d={route.d} fill="none" className="stroke-emerald-700" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+        <circle cx={route.start[0]} cy={route.start[1]} r={5} fill="#10b981" className="stroke-white" strokeWidth={2} />
+        <circle cx={route.end[0]} cy={route.end[1]} r={5} fill="#dc2626" className="stroke-white" strokeWidth={2} />
       </svg>
     </Card>
   )

@@ -7,10 +7,21 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#047857" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Rob1Coach" />
     <meta name="description" content="Rob1Coach : planification et suivi des coureurs par leur coach." />
     <title>Rob1Coach</title>
+    <script>
+      // Thème appliqué avant le premier affichage (sinon un éclair blanc en mode sombre).
+      // Même clé et mêmes valeurs que src/domain/theme.ts.
+      try {
+        var t = localStorage.getItem('rob1coach-theme')
+        var dark = t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.classList.toggle('dark', dark)
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

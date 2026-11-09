@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { useMyProfile, useUpdateEmailNotifications, useUpdateMyName } from '../api/profile.ts'
+import { ThemeChoice } from '../components/ThemeToggle.tsx'
 import { GarminAttribution, GarminImportButton } from '../components/garmin/Garmin.tsx'
 import { Alert, Button, Card, LoadingBlock, PageHeader, SavedHint, TextField } from '../components/ui.tsx'
 import type { Profile } from '../lib/database.types.ts'
@@ -37,6 +38,9 @@ export function AccountPage() {
             <GarminImportButton athleteId={profile.data.id} />
           </Card>
         )}
+        <Card title="Apparence" description="« Système » suit le réglage clair ou sombre du téléphone ou de l’ordinateur." className="lg:col-span-2">
+          <ThemeChoice />
+        </Card>
         <Card title="Session" className="lg:col-span-2">
           <Button variant="secondary" onClick={() => void supabase.auth.signOut()}>
             Se déconnecter
