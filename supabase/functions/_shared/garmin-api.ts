@@ -36,6 +36,9 @@ export type GarminSummary = {
   averageHR: number | null
   maxHR: number | null
   calories: number | null
+  /** Cadence : pas/min en course et en marche, tr/min à vélo (absente pour les autres sports). */
+  averageCadence: number | null
+  maxCadence: number | null
 }
 
 export type ImportError = 'not_configured' | 'not_allowed' | 'bad_range' | 'garmin_key_rejected' | 'garmin_unavailable'
@@ -96,6 +99,8 @@ export function pickSummary(raw: unknown): GarminSummary | null {
     averageHR: num(a.averageHR),
     maxHR: num(a.maxHR),
     calories: num(a.calories),
+    averageCadence: num(a.averageRunningCadenceInStepsPerMinute) ?? num(a.averageBikingCadenceInRevPerMinute),
+    maxCadence: num(a.maxRunningCadenceInStepsPerMinute) ?? num(a.maxBikingCadenceInRevPerMinute),
   }
 }
 

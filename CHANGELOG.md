@@ -1,5 +1,9 @@
 # Journal des versions
 
+## [0.5.4] - 2026-11-09
+
+- **Cadence partout** : la cadence moyenne et max est importée avec le résumé de chaque activité Garmin (pas/min en course, tr/min à vélo). Elle apparaît dans l'infobulle des sorties du planning, dans la liste des activités et dans le détail, même sans fichier `.FIT`. Les activités des 14 derniers jours la reçoivent au prochain import automatique.
+
 ## [0.5.3] - 2026-11-08
 
 - **Courbes** : après le premier kilomètre, l'échelle couvre de nouveau tout l'écart entre le min et le max de chaque courbe. Seules les valeurs de la mise en route peuvent sortir du cadre.

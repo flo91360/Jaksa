@@ -23,6 +23,8 @@ const summary = (patch: Partial<GarminSummary> = {}): GarminSummary => ({
   averageHR: 146,
   maxHR: 171,
   calories: 690,
+  averageCadence: 171.6,
+  maxCadence: 188,
   ...patch,
 })
 
@@ -42,6 +44,8 @@ describe('activités Garmin', () => {
       avg_hr: 146,
       max_hr: 171,
       calories: 690,
+      avg_cadence: 172,
+      max_cadence: 188,
     })
   })
 
@@ -162,6 +166,7 @@ describe('affichage', () => {
       ['FC moy.', '146 bpm'],
       ['FC max', '171 bpm'],
       ['D+', '85 m'],
+      ['Cadence', '172 pas/min'],
     ])
   })
 })
