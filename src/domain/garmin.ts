@@ -46,6 +46,8 @@ type Displayed = {
   elevation_gain_m: number | null
   avg_hr: number | null
   max_hr: number | null
+  /** Absente des activités importées avant la 0.5.4. */
+  avg_cadence?: number | null
 }
 
 /** Allure moyenne (s/km), sur le temps en mouvement s'il est connu. Seulement pour la course. */
@@ -66,6 +68,11 @@ export function activityFigures(activity: Displayed): [string, string][] {
   if (activity.avg_hr) figures.push(['FC moy.', `${activity.avg_hr} bpm`])
   if (activity.max_hr) figures.push(['FC max', `${activity.max_hr} bpm`])
   if (activity.elevation_gain_m !== null) figures.push(['D+', `${activity.elevation_gain_m} m`])
+  if (activity.avg_cadence) {
+    const sport = garminSport(activity.activity_type)
+    const foot = sport === 'run' || sport === 'trail' || /walk|hik/.test(activity.activity_type)
+    figures.push(['Cadence', `${activity.avg_cadence} ${foot ? 'pas/min' : 'tr/min'}`])
+  }
   return figures
 }
 

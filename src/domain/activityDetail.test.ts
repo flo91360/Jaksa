@@ -208,7 +208,10 @@ describe('détail d’une activité', () => {
       Température: '12 °C',
     })
     expect(figures['Puissance moy.']).toBeUndefined()
-    // Sans .FIT : le résumé seul.
+    // Sans .FIT : le résumé seul, cadence comprise.
+    expect(
+      Object.fromEntries(detailFigures({ ...activity, avg_cadence: 170, max_cadence: 186 }, null).map((f) => [f.label, f.value])),
+    ).toMatchObject({ 'Cadence moy.': '170 pas/min', 'Cadence max': '186 pas/min' })
     expect(detailFigures({ ...activity, activity_type: 'cycling' }, null).map((f) => f.label)).toContain('Vitesse moy.')
   })
 

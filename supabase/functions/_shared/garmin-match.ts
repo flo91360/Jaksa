@@ -20,6 +20,8 @@ export type GarminActivityValues = {
   avg_hr: number | null
   max_hr: number | null
   calories: number | null
+  avg_cadence: number | null
+  max_cadence: number | null
 }
 
 export type GarminSport = 'run' | 'trail' | 'strength' | 'cross'
@@ -61,6 +63,8 @@ export function summaryToActivity(summary: GarminSummary): GarminActivityValues 
     avg_hr: bounded(summary.averageHR, 20, 250),
     max_hr: bounded(summary.maxHR, 20, 250),
     calories: bounded(summary.calories, 0, 30_000),
+    avg_cadence: bounded(summary.averageCadence, 1, 400),
+    max_cadence: bounded(summary.maxCadence, 1, 400),
   }
 }
 

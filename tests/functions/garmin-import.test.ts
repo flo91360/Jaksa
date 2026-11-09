@@ -17,6 +17,8 @@ const ACTIVITY = {
   averageHR: 146,
   maxHR: 171,
   calories: 690,
+  averageRunningCadenceInStepsPerMinute: 171.6,
+  maxRunningCadenceInStepsPerMinute: 188,
   // Champs que la fonction ne renvoie pas au site.
   ownerFullName: 'Florian',
   summarizedDiveInfo: {},
@@ -70,6 +72,8 @@ describe('import Garmin (fonction)', () => {
         averageHR: 146,
         maxHR: 171,
         calories: 690,
+        averageCadence: 171.6,
+        maxCadence: 188,
       },
     ])
   })

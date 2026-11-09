@@ -251,6 +251,9 @@ type SummaryLike = {
   elevation_gain_m: number | null
   /** Absent des activités importées avant la 0.5.2. */
   elevation_loss_m?: number | null
+  /** Absentes des activités importées avant la 0.5.4. */
+  avg_cadence?: number | null
+  max_cadence?: number | null
   avg_hr: number | null
   max_hr: number | null
   calories: number | null
@@ -298,8 +301,10 @@ export function detailFigures(activity: SummaryLike, detail: ActivityDetail | nu
     add('Altitude', `${Math.round(s.min_altitude_m)}-${Math.round(s.max_altitude_m)} m`)
   }
   const cadenceUnit = foot ? 'pas/min' : 'tr/min'
-  add('Cadence moy.', s?.avg_cadence ? `${s.avg_cadence} ${cadenceUnit}` : null)
-  add('Cadence max', s?.max_cadence ? `${s.max_cadence} ${cadenceUnit}` : null)
+  const avgCadence = s?.avg_cadence || activity.avg_cadence
+  const maxCadence = s?.max_cadence || activity.max_cadence
+  add('Cadence moy.', avgCadence ? `${avgCadence} ${cadenceUnit}` : null)
+  add('Cadence max', maxCadence ? `${maxCadence} ${cadenceUnit}` : null)
   add('Puissance moy.', s?.avg_power ? `${s.avg_power} W` : null)
   add('Puissance max', s?.max_power ? `${s.max_power} W` : null)
   const te = (value: number | null | undefined) => (value ? value.toLocaleString('fr-FR', { minimumFractionDigits: 1 }) : null)
