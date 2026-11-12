@@ -1,5 +1,18 @@
 # Journal des versions
 
+## [0.8.0] - 2026-11-12
+
+Rob1Coach devient une plateforme : chaque coach y ouvre son espace, avec ses propres athlètes.
+
+- **Créer mon espace coach** : un coach s'inscrit seul depuis la page d'accueil ou la page de connexion (`/inscription`). Il invite ensuite ses athlètes comme avant, par lien.
+- **Offres** : seule la taille du groupe change, toutes les fonctions sont dans toutes les offres.
+  - **Découverte**, gratuite et sans limite de durée : jusqu'à 3 athlètes ;
+  - **Solo** (10 athlètes), **Pro** (30) et **Club** (100) : tarifs annoncés prochainement ;
+  - c'est gratuit pour les athlètes, toujours, et un athlète archivé ne compte pas.
+- Les coachs déjà inscrits passent en offre **Fondateur** : aucune limite, rien ne change pour eux.
+- **Mes athlètes** et **Compte › Mon offre** affichent les places prises. Quand tout est pris, l'athlète qui ouvre un lien d'invitation est prévenu avant de créer son compte.
+- La page d'accueil présente les offres.
+
 ## [0.7.0] - 2026-11-12
 
 Le site devient présentable au public, et chacun reprend la main sur ses données.

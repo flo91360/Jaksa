@@ -1,6 +1,8 @@
 import { type FormEvent, useState } from 'react'
 import { downloadJson, exportAccountData, useDeleteAccount, useLeaveCoach } from '../api/account.ts'
 import { useMyCoaches } from '../api/athletes.ts'
+import { usePlanUsage } from '../api/subscription.ts'
+import { UpgradeHint, UsageBar } from '../components/PlanCard.tsx'
 import { useMyProfile, useUpdateEmailNotifications, useUpdateMyName } from '../api/profile.ts'
 import { ThemeChoice } from '../components/ThemeToggle.tsx'
 import { GarminAttribution, GarminImportButton } from '../components/garmin/Garmin.tsx'
@@ -46,6 +48,7 @@ export function AccountPage() {
         <Card title="Apparence" description="« Système » suit le réglage clair ou sombre du téléphone ou de l’ordinateur." className="lg:col-span-2">
           <ThemeChoice />
         </Card>
+        {profile.data?.role === 'coach' && <MyPlan coachId={profile.data.id} />}
         {profile.data?.role === 'athlete' && (
           <Card
             title="Mon coach"
@@ -86,6 +89,29 @@ export function AccountPage() {
         </p>
       </footer>
     </>
+  )
+}
+
+/** Offre du coach : places prises, et comment en obtenir d'autres. */
+function MyPlan({ coachId }: { coachId: string }) {
+  const usage = usePlanUsage(coachId)
+  if (!usage) return null
+  return (
+    <Card
+      title="Mon offre"
+      description="Seuls les athlètes actifs comptent : archiver un athlète libère sa place. C’est gratuit pour tes athlètes, toujours."
+      className="lg:col-span-2"
+    >
+      <div className="space-y-3">
+        <UsageBar usage={usage} />
+        <p className="text-sm text-slate-600">{usage.plan.summary}</p>
+        {usage.plan.athleteLimit !== null && (
+          <p className="text-sm text-slate-600">
+            <UpgradeHint usage={usage} />
+          </p>
+        )}
+      </div>
+    </Card>
   )
 }
 

@@ -5,13 +5,15 @@
 import type { FeedbackStatus, Pain } from '../domain/feedback.ts'
 import type { GarminActivityValues } from '../domain/garmin.ts'
 import type { ActivityDetail } from '../domain/activityDetail.ts'
+import type { PlanCode } from '../domain/plans.ts'
 import type { RacePriority } from '../domain/planning.ts'
 import type { WorkoutItem, WorkoutKind } from '../domain/workouts.ts'
 import type { HrZone } from '../domain/zones.ts'
 
 export type UserRole = 'coach' | 'athlete'
 export type LinkStatus = 'active' | 'archived'
-export type InvitationStatus = 'valid' | 'accepted' | 'expired' | 'revoked'
+/** « full » : le coach n'a plus de place dans son offre (0.8.0). */
+export type InvitationStatus = 'valid' | 'accepted' | 'expired' | 'revoked' | 'full'
 
 export type Database = {
   public: {
@@ -43,6 +45,18 @@ export type Database = {
         }
         Insert: never
         Update: { status?: LinkStatus }
+        Relationships: []
+      }
+      /** Offre de chaque coach (0.8.0) : lue par le site, jamais écrite. */
+      coach_subscriptions: {
+        Row: {
+          coach_id: string
+          plan: PlanCode
+          started_at: string
+          updated_at: string
+        }
+        Insert: never
+        Update: never
         Relationships: []
       }
       invitations: {

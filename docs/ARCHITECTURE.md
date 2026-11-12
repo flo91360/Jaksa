@@ -35,6 +35,7 @@ chaque requête est faite au nom de l'utilisateur connecté, et les règles RLS
 |---|---|
 | `profiles` | Un profil par compte : nom, e-mail, rôle (`coach` ou `athlete`), accord donné (`terms_version`, `terms_accepted_at`) |
 | `coach_athletes` | Lien coach ↔ athlète, statut `active` / `archived` |
+| `coach_subscriptions` (0.8.0) | Offre de chaque coach (`decouverte`, `solo`, `pro`, `club`, `fondateur`) : fixe le nombre d'athlètes actifs |
 | `invitations` | Liens d'invitation : jeton aléatoire de 244 bits, usage unique, valable 14 jours |
 | `athlete_profiles` | Fiche athlète : objectifs, blessures, disponibilités, physiologie, zones (JSON) |
 | `athlete_metrics_history` | Historique de la physiologie et des zones (à chaque modification) |
@@ -86,7 +87,8 @@ quand le coach les met à jour. La base vérifie ce format (`workout_steps_are_v
 | Fiche athlète : physiologie et zones | lit, modifie | lit seulement | — |
 | Notes privées | lit, modifie | **jamais** | — |
 | Invitations | crée, lit, annule les siennes | — | aperçu par jeton |
-| Rôle (`coach` / `athlete`) | ne peut pas le changer | ne peut pas le changer | — |
+| Rôle (`coach` / `athlete`) | ne peut pas le changer | ne peut pas le changer | choisi à l'inscription |
+| Son offre | lit, ne la change pas | — | — |
 | Séances de ses athlètes / les siennes | lit, crée, modifie, supprime | lit seulement | — |
 | Séances des autres athlètes | **jamais** | **jamais** | — |
 | Séances types (bibliothèque) | les siennes : tout | **jamais** | — |
@@ -102,7 +104,7 @@ quand le coach les met à jour. La base vérifie ce format (`workout_steps_are_v
 | Journal des erreurs du site | **jamais** | **jamais** | — |
 
 Ces règles sont vérifiées automatiquement par `tests/db/socle.test.ts`, `tests/db/planification.test.ts`,
-`tests/db/echanges.test.ts`, `tests/db/garmin.test.ts` et `tests/db/comptes.test.ts`. Un message ou un commentaire ne se modifie pas ; « lu » et « vu par le coach » ne
+`tests/db/echanges.test.ts`, `tests/db/garmin.test.ts`, `tests/db/comptes.test.ts` et `tests/db/offres.test.ts`. Un message ou un commentaire ne se modifie pas ; « lu » et « vu par le coach » ne
 s'écrivent qu'au travers de `mark_conversation_read` et `mark_workout_seen`.
 
 Une séance ne change jamais d'athlète : la copier vers un autre athlète crée une nouvelle séance.
@@ -122,6 +124,18 @@ Une séance ne change jamais d'athlète : la copier vers un autre athlète crée
   `coach_athletes`, le coach perd aussitôt tout accès ; l'athlète garde ses données.
 - **Suppression du compte** : `delete_my_account` supprime la ligne de `auth.users`, et les clés étrangères
   `ON DELETE CASCADE` emportent le reste. Pour un coach, les séances qu'il a planifiées partent avec lui.
+
+## Coachs et offres (0.8.0)
+
+- **Inscription d'un coach** (`/inscription`) : le formulaire envoie `account_type = 'coach'` dans les métadonnées ;
+  `handle_new_user` crée le profil avec le rôle coach et une ligne `coach_subscriptions` (offre `decouverte`). Un
+  compte existant ne change jamais de rôle depuis le site.
+- **Offres** : `src/domain/plans.ts` (noms, limites, prix affichés) et `plan_athlete_limit` dans la base disent la
+  même chose, ce que vérifie `tests/db/offres.test.ts`.
+- **Limite** : le déclencheur `coach_athletes_check_limit` refuse (erreur `RC007`) tout athlète qui deviendrait
+  actif au-delà de la limite, que ce soit par une invitation ou par une réactivation. `get_invitation` renvoie
+  `full` pour prévenir l'athlète avant l'inscription.
+- L'offre ne s'écrit pas depuis le site : `set_coach_plan` (SQL Editor) aujourd'hui, le paiement en ligne demain.
 
 ## Sécurité du navigateur et suivi des erreurs (0.7.0)
 

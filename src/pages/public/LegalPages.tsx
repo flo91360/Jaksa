@@ -205,7 +205,7 @@ export function TermsPage() {
 
       <h2>Les comptes</h2>
       <ul>
-        <li>Un athlète rejoint un coach grâce au lien d’invitation personnel que celui-ci lui envoie.</li>
+        <li>Un coach crée son espace sur le site. Un athlète rejoint un coach grâce au lien d’invitation personnel que celui-ci lui envoie.</li>
         <li>
           Chacun est responsable de la confidentialité de son mot de passe et des informations qu’il saisit. Les
           informations fournies doivent être exactes.
@@ -249,9 +249,10 @@ export function TermsPage() {
 
       <h2>Tarifs</h2>
       <p>
-        L’utilisation de {SITE.name} est gratuite pour les athlètes. Pendant la phase de lancement, elle l’est aussi
-        pour les coachs. Toute offre payante sera annoncée à l’avance sur le site, et ne s’appliquera jamais sans
-        l’accord du coach concerné.
+        L’utilisation de {SITE.name} est gratuite pour les athlètes, toujours. Pour les coachs, l’offre Découverte
+        est gratuite, sans limite de durée, jusqu’à 3 athlètes actifs ; les offres suivantes accueillent plus
+        d’athlètes. Leur tarif est annoncé à l’avance sur le site, et aucune offre payante ne s’applique sans l’accord
+        du coach concerné. Un athlète archivé ne compte pas.
       </p>
 
       <h2>Disponibilité</h2>
