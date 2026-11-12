@@ -1,0 +1,8 @@
+# Seules les pages publiques ont un intérêt pour les moteurs de recherche.
+User-agent: *
+Allow: /$
+Allow: /confidentialite
+Allow: /conditions
+Allow: /mentions-legales
+Disallow: /invitation/
+Disallow: /nouveau-mot-de-passe

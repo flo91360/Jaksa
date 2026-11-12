@@ -1,5 +1,5 @@
 import { Route, Routes } from 'react-router'
-import { HomeRedirect, PublicOnly, RequireAuth, RequireRole } from './auth/guards.tsx'
+import { HomeOrLanding, PublicOnly, RequireAuth, RequireRole } from './auth/guards.tsx'
 import { AppLayout } from './components/AppLayout.tsx'
 import { AccountPage } from './pages/AccountPage.tsx'
 import { ActivityPage } from './pages/ActivityPage.tsx'
@@ -11,6 +11,7 @@ import { NotFoundPage } from './pages/MiscPages.tsx'
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/PasswordPages.tsx'
 import { MyProfilePage } from './pages/athlete/MyProfilePage.tsx'
 import { TodayPage } from './pages/athlete/TodayPage.tsx'
+import { LegalNoticePage, PrivacyPage, TermsPage } from './pages/public/LegalPages.tsx'
 import { AthletePage } from './pages/coach/AthletePage.tsx'
 import { AthletesPage } from './pages/coach/AthletesPage.tsx'
 import { LibraryPage } from './pages/coach/LibraryPage.tsx'
@@ -19,6 +20,12 @@ import { PlanningPage } from './pages/coach/PlanningPage.tsx'
 export function App() {
   return (
     <Routes>
+      {/* Pages publiques : accueil (ou espace personnel si l'on est connecté) et pages légales. */}
+      <Route path="/" element={<HomeOrLanding />} />
+      <Route path="/confidentialite" element={<PrivacyPage />} />
+      <Route path="/conditions" element={<TermsPage />} />
+      <Route path="/mentions-legales" element={<LegalNoticePage />} />
+
       <Route
         path="/connexion"
         element={
@@ -38,7 +45,6 @@ export function App() {
           </RequireAuth>
         }
       >
-        <Route index element={<HomeRedirect />} />
         <Route
           path="athletes"
           element={

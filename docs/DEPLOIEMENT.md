@@ -319,3 +319,32 @@ garder une PR ouverte (à relire avant), cliquer sur **Disable auto-merge** sur 
 L'aperçu Cloudflare des branches (« Workers Builds » rouge sur les PR) peut être coupé dans Cloudflare :
 **Workers & Pages** → `rob1coach` → **Settings** → **Build** → **Branch control** → décocher **Builds for
 non-production branches**. Le site en production, construit à chaque fusion dans `main`, n'est pas concerné.
+
+## 10. Pages légales et suivi des erreurs (0.7.0)
+
+Rien à installer : la migration `20261117090000_comptes_rgpd.sql` est appliquée par la tâche de l'étape 4.
+
+**Coordonnées de l'éditeur.** Tant qu'elles ne sont pas renseignées, les pages `/mentions-legales` et
+`/confidentialite` indiquent que le site est en phase pilote. Pour les publier, ajouter ces variables de build dans
+Cloudflare (au même endroit que `VITE_SUPABASE_URL`, étape 3), puis relancer un déploiement :
+
+| Variable | Exemple |
+|---|---|
+| `VITE_CONTACT_EMAIL` | `contact@rob1coach.fr` |
+| `VITE_PUBLISHER_NAME` | nom de la structure (ou prénom et nom de l'entrepreneur) |
+| `VITE_PUBLISHER_LEGAL_FORM` | `micro-entreprise` |
+| `VITE_PUBLISHER_ADDRESS` | adresse du siège |
+| `VITE_PUBLISHER_SIRET` | numéro SIRET |
+| `VITE_PUBLISHER_DIRECTOR` | responsable de la publication |
+
+**Modifier les conditions ou la politique de confidentialité** : changer le texte dans
+`src/pages/public/LegalPages.tsx` et la date `TERMS_VERSION` de `src/lib/site.ts`. Chaque personne devra alors
+redonner son accord à sa prochaine visite.
+
+**Lire les erreurs du site** : tableau de bord Supabase → **Table Editor** → `client_errors` (les plus récentes en
+tête en triant sur `occurred_at`). Chaque ligne donne la page, la version du site, le message et le navigateur. La
+table se vide toute seule au bout de 30 jours.
+
+**En-têtes de sécurité** : ils sont dans `public/_headers`. Si un jour le site doit charger quelque chose d'un autre
+domaine (police, carte, outil de paiement), il faut l'y autoriser, sinon le navigateur le bloquera.
+

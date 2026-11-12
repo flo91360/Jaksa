@@ -265,20 +265,40 @@ export function EmptyState({ title, children }: { title: string; children?: Reac
   )
 }
 
+const LEGAL_LINKS = [
+  { to: '/confidentialite', label: 'Confidentialité' },
+  { to: '/conditions', label: 'Conditions d’utilisation' },
+  { to: '/mentions-legales', label: 'Mentions légales' },
+]
+
+/** Liens vers les pages légales (pied des pages publiques et des écrans de connexion). */
+export function LegalLinks({ className = '' }: { className?: string }) {
+  return (
+    <nav aria-label="Informations légales" className={`flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm ${className}`}>
+      {LEGAL_LINKS.map((link) => (
+        <Link key={link.to} to={link.to} className="text-slate-600 hover:text-emerald-800 hover:underline">
+          {link.label}
+        </Link>
+      ))}
+    </nav>
+  )
+}
+
 /** Mise en page des écrans hors connexion (connexion, invitation…). */
 export function AuthLayout({ title, subtitle, children }: { title: string; subtitle?: ReactNode; children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
-        <div className="mb-6 flex items-center justify-center gap-2">
+        <Link to="/" className="mb-6 flex items-center justify-center gap-2">
           <img src="/favicon.svg" alt="" className="size-10" />
           <span className="text-2xl font-bold tracking-tight text-slate-900">Rob1Coach</span>
-        </div>
+        </Link>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <h1 className="text-xl font-bold text-slate-900">{title}</h1>
           {subtitle && <div className="mt-1 text-sm text-slate-600">{subtitle}</div>}
           <div className="mt-6">{children}</div>
         </div>
+        <LegalLinks className="mt-6" />
       </div>
     </div>
   )
