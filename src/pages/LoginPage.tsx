@@ -47,7 +47,13 @@ export function LoginPage() {
           <Link to="/mot-de-passe-oublie" className="font-medium text-emerald-800 hover:underline">
             Mot de passe oublié ?
           </Link>
-          <p>Pas encore de compte ? Demande un lien d’invitation à ton coach.</p>
+          <p>Athlète sans compte ? Demande un lien d’invitation à ton coach.</p>
+          <p>
+            Coach ?{' '}
+            <Link to="/inscription" className="font-medium text-emerald-800 hover:underline">
+              Crée ton espace
+            </Link>
+          </p>
         </div>
       </form>
     </AuthLayout>

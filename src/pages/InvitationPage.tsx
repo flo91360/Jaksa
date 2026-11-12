@@ -14,6 +14,7 @@ const STATUS_MESSAGES: Record<Exclude<InvitationPreview['status'], 'valid'>, str
   accepted: 'Cette invitation a déjà été utilisée. Si c’est toi, connecte-toi simplement.',
   expired: 'Cette invitation a expiré. Demande un nouveau lien à ton coach.',
   revoked: 'Ton coach a annulé cette invitation. Demande-lui un nouveau lien.',
+  full: 'Ton coach suit déjà le nombre d’athlètes prévu par son offre. Préviens-le : dès qu’il a libéré une place, ce même lien fonctionnera.',
 }
 
 /** Arrivée d'un athlète par le lien envoyé par son coach. */

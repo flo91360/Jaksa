@@ -4,6 +4,7 @@ Application web pour un coach de course à pied et ses athlètes (semi, marathon
 ultra-trail, reprise après blessure). Elle remplace l'essentiel de Nolio, pour un
 coût d'hébergement proche de zéro.
 
+- **Plateforme** : chaque coach crée son espace et y suit ses propres athlètes ; l'offre gratuite va jusqu'à 3 athlètes.
 - **Coach** : invite ses athlètes par lien, tient leur fiche (physiologie, objectifs, blessures, notes privées) et définit leurs zones de FC et les allures correspondantes.
 - **Planification** : calendrier à la semaine ou au mois, par athlète ou pour tous, avec glisser-déposer ; constructeur de séances (échauffement, blocs répétés, récupérations) dont les zones se traduisent en FC et en allure ; bibliothèque de séances types ; courses A/B/C.
 - **Athlète** : rejoint son coach en un clic, voit sa séance du jour et sa semaine, exporte la séance en `.FIT` pour sa montre Garmin, retrouve ses zones et ses courses.

@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
+import { PlanTile } from '../../components/PlanCard.tsx'
 import { ButtonLink, PublicLayout } from '../../components/PublicLayout.tsx'
+import { LISTED_PLANS } from '../../domain/plans.ts'
 import { SITE } from '../../lib/site.ts'
 
 const FEATURES: { title: string; text: string; icon: string }[] = [
@@ -73,13 +75,14 @@ export function LandingPage() {
             après l’effort et les échanges, sur téléphone comme sur ordinateur.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <ButtonLink to="/connexion">Se connecter</ButtonLink>
-            <ButtonLink to="/confidentialite" variant="secondary">
-              Ce que nous faisons de tes données
+            <ButtonLink to="/inscription">Créer mon espace coach</ButtonLink>
+            <ButtonLink to="/connexion" variant="secondary">
+              Se connecter
             </ButtonLink>
           </div>
           <p className="mt-4 text-sm text-slate-500">
-            Tu es athlète ? Ton coach t’envoie un lien d’invitation personnel : ton compte se crée en un clic.
+            Gratuit jusqu’à 3 athlètes, sans carte bancaire. Tu es athlète ? Ton coach t’envoie un lien d’invitation
+            personnel : ton compte se crée en un clic.
           </p>
         </div>
 
@@ -126,6 +129,20 @@ export function LandingPage() {
           La liaison est toujours facultative : elle se fait sur la page d’autorisation de la marque et se retire à
           tout moment.
         </p>
+      </Section>
+
+      <Section
+        title="Des offres à la taille de ton groupe"
+        intro="Toutes les fonctions sont dans toutes les offres : seul le nombre d’athlètes suivis change. C’est gratuit pour les athlètes, toujours, et un athlète archivé ne compte pas."
+      >
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {LISTED_PLANS.map((plan) => (
+            <PlanTile key={plan.code} plan={plan} highlighted={plan.monthlyPrice === 0} />
+          ))}
+        </ul>
+        <div className="mt-6">
+          <ButtonLink to="/inscription">Commencer gratuitement</ButtonLink>
+        </div>
       </Section>
 
       <Section title="Tes données restent les tiennes">

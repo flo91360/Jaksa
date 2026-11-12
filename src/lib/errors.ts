@@ -22,6 +22,7 @@ const DATABASE_MESSAGES: Record<string, string> = {
   RC004: 'Cette invitation a expiré. Demande un nouveau lien à ton coach.',
   RC005: 'Tu es connecté avec un compte coach : il ne peut pas rejoindre un autre coach.',
   RC006: 'Connecte-toi pour accepter cette invitation.',
+  RC007: 'Toutes les places de l’offre du coach sont prises : archive un athlète ou passe à l’offre suivante.',
   '42501': 'Tu n’as pas le droit de faire cette modification.',
   '23514': 'Valeur refusée : vérifie les champs saisis.',
   PGRST116: 'Élément introuvable.',

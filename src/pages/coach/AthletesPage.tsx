@@ -2,7 +2,9 @@ import { type FormEvent, useState } from 'react'
 import { Link } from 'react-router'
 import { useCoachAthletes } from '../../api/athletes.ts'
 import { useCreateInvitation, useInvitations, useRevokeInvitation } from '../../api/invitations.ts'
+import { usePlanUsage } from '../../api/subscription.ts'
 import { useUserId } from '../../auth/auth-context.ts'
+import { UpgradeHint, UsageBar } from '../../components/PlanCard.tsx'
 import { InvitationLink } from '../../components/InvitationLink.tsx'
 import { pendingInvitations } from '../../domain/invitations.ts'
 import { Alert, Button, Card, EmptyState, LoadingBlock, PageHeader, TextField } from '../../components/ui.tsx'
@@ -15,6 +17,7 @@ export function AthletesPage() {
   const athletes = useCoachAthletes(coachId)
   const invitations = useInvitations(coachId)
   const [inviting, setInviting] = useState(false)
+  const usage = usePlanUsage(coachId)
 
   const active = athletes.data?.filter((link) => link.status === 'active') ?? []
   const archived = athletes.data?.filter((link) => link.status === 'archived') ?? []
@@ -29,6 +32,17 @@ export function AthletesPage() {
       />
 
       <div className="space-y-6">
+        {usage && usage.plan.athleteLimit !== null && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <UsageBar usage={usage} />
+            {usage.nearLimit && (
+              <p className="mt-2 text-sm text-slate-600">
+                {usage.full ? 'Toutes tes places sont prises : un nouvel athlète ne pourra pas te rejoindre. ' : 'Il te reste une place. '}
+                <UpgradeHint usage={usage} />
+              </p>
+            )}
+          </div>
+        )}
         {inviting && <InviteCard coachId={coachId} onClose={() => setInviting(false)} />}
 
         {athletes.isPending && <LoadingBlock />}

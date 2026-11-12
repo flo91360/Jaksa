@@ -3,6 +3,7 @@ import { HomeOrLanding, PublicOnly, RequireAuth, RequireRole } from './auth/guar
 import { AppLayout } from './components/AppLayout.tsx'
 import { AccountPage } from './pages/AccountPage.tsx'
 import { ActivityPage } from './pages/ActivityPage.tsx'
+import { CoachSignupPage } from './pages/CoachSignupPage.tsx'
 import { InvitationPage } from './pages/InvitationPage.tsx'
 import { LoginPage } from './pages/LoginPage.tsx'
 import { MessagesPage } from './pages/MessagesPage.tsx'
@@ -31,6 +32,14 @@ export function App() {
         element={
           <PublicOnly>
             <LoginPage />
+          </PublicOnly>
+        }
+      />
+      <Route
+        path="/inscription"
+        element={
+          <PublicOnly>
+            <CoachSignupPage />
           </PublicOnly>
         }
       />

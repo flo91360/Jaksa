@@ -34,7 +34,8 @@ Compter environ une heure la première fois.
 
 ## 2. Créer le compte du coach
 
-Le site ne permet pas de devenir coach tout seul : c'est voulu.
+Depuis la 0.8.0, un coach crée son espace tout seul sur `/inscription` (offre Découverte, 3 athlètes : voir
+l'étape 11). La méthode manuelle ci-dessous reste utile pour transformer un compte déjà créé en compte coach.
 
 1. **Authentication** → **Users** → **Add user** → **Create new user** : saisir l'e-mail et le mot de passe du coach, et cocher **Auto Confirm User**.
 2. Dans **SQL Editor**, en adaptant l'e-mail et le nom :
@@ -347,4 +348,44 @@ table se vide toute seule au bout de 30 jours.
 
 **En-têtes de sécurité** : ils sont dans `public/_headers`. Si un jour le site doit charger quelque chose d'un autre
 domaine (police, carte, outil de paiement), il faut l'y autoriser, sinon le navigateur le bloquera.
+
+## 11. Coachs et offres (0.8.0)
+
+Rien à installer : la migration `20261118090000_offres_coachs.sql` est appliquée par la tâche de l'étape 4. Les
+coachs déjà inscrits reçoivent l'offre `fondateur` (sans limite).
+
+**Réglages Supabase recommandés maintenant que l'inscription est ouverte à tous** (tableau de bord, une fois) :
+
+- **Authentication** → **Sign In / Providers** → **Email** → activer **Confirm email** : un coach doit prouver que
+  l'adresse est la sienne. L'envoi d'e-mails par SMTP (étape 1.5) doit être en place.
+- **Authentication** → **Attack Protection** → activer la protection contre les robots (Cloudflare Turnstile,
+  gratuit) si des inscriptions indésirables apparaissent. Il faudra alors autoriser Turnstile dans
+  `public/_headers` : le demander à Claude.
+
+**Changer l'offre d'un coach** (tant que le paiement en ligne n'existe pas) : **SQL Editor**, puis
+
+```sql
+select public.set_coach_plan('coach@exemple.fr', 'solo');
+```
+
+| Offre | Athlètes actifs |
+|---|---|
+| `decouverte` (offre de départ) | 3 |
+| `solo` | 10 |
+| `pro` | 30 |
+| `club` | 100 |
+| `fondateur` | sans limite |
+
+**Voir les coachs et leur offre** :
+
+```sql
+select p.full_name, p.email, s.plan,
+       (select count(*) from public.coach_athletes ca where ca.coach_id = p.id and ca.status = 'active') as athletes
+from public.profiles p
+join public.coach_subscriptions s on s.coach_id = p.id
+order by p.created_at;
+```
+
+**Publier un tarif** : renseigner `monthlyPrice` de l'offre dans `src/domain/plans.ts`. Tant qu'il est vide, la page
+d'accueil affiche « Tarif annoncé prochainement ».
 
