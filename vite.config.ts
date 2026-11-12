@@ -5,6 +5,8 @@ import { defineConfig } from 'vitest/config'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Version affichée dans le site et jointe au journal des erreurs.
+  define: { __APP_VERSION__: JSON.stringify(process.env.npm_package_version ?? '') },
   build: {
     rolldownOptions: {
       output: {

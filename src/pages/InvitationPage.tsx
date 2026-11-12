@@ -3,8 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { type InvitationPreview, useAcceptInvitation, useInvitationPreview } from '../api/invitations.ts'
 import { useMyProfile } from '../api/profile.ts'
 import { useAuth } from '../auth/auth-context.ts'
+import { ConsentCheckbox } from '../components/Consent.tsx'
 import { Alert, AuthLayout, Button, FullPageSpinner, TextField } from '../components/ui.tsx'
 import { errorMessage } from '../lib/errors.ts'
+import { TERMS_VERSION } from '../lib/site.ts'
 import { appUrl, supabase } from '../lib/supabase.ts'
 import { MIN_PASSWORD_LENGTH } from './PasswordPages.tsx'
 
@@ -161,6 +163,7 @@ function SignupForm({
   const [fullName, setFullName] = useState(defaultName)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [consent, setConsent] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmationSentTo, setConfirmationSentTo] = useState<string | null>(null)
@@ -169,6 +172,10 @@ function SignupForm({
     event.preventDefault()
     if (password.length < MIN_PASSWORD_LENGTH) {
       setError(`Mot de passe : au moins ${MIN_PASSWORD_LENGTH} caractères.`)
+      return
+    }
+    if (!consent) {
+      setError('Coche la case pour donner ton accord.')
       return
     }
     setBusy(true)
@@ -180,7 +187,7 @@ function SignupForm({
       options: {
         // Le jeton est lu par la base à la création du compte : le rattachement
         // au coach se fait tout de suite, même si l'e-mail reste à confirmer.
-        data: { full_name: fullName.trim(), invitation_token: token },
+        data: { full_name: fullName.trim(), invitation_token: token, terms_version: TERMS_VERSION },
         emailRedirectTo: appUrl('/'),
       },
     })
@@ -237,12 +244,14 @@ function SignupForm({
         value={password}
         onChange={(event) => setPassword(event.target.value)}
       />
+      <ConsentCheckbox role="athlete" checked={consent} onChange={setConsent} />
       {error && <Alert tone="error">{error}</Alert>}
       <Button type="submit" busy={busy} className="w-full">
         Créer mon compte
       </Button>
       <p className="text-xs text-slate-500">
-        Tes données d’entraînement ne sont visibles que par toi et ton coach.
+        Tes données ne sont visibles que par toi et ton coach. Tu peux les télécharger ou supprimer ton compte à tout
+        moment.
       </p>
     </form>
   )

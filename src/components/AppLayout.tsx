@@ -1,6 +1,9 @@
 import { NavLink, Outlet, useLocation } from 'react-router'
 import { useRealtimeExchanges, useUnreadMessageCount } from '../api/exchanges.ts'
 import { useMyProfile } from '../api/profile.ts'
+import { needsTermsAcceptance } from '../domain/account.ts'
+import { TERMS_VERSION } from '../lib/site.ts'
+import { ConsentGate } from './Consent.tsx'
 import { ThemeToggle } from './ThemeToggle.tsx'
 import { UnreadBadge } from './ui.tsx'
 import type { UserRole } from '../lib/database.types.ts'
@@ -39,6 +42,8 @@ export function AppLayout() {
   const unread = useUnreadMessageCount(profile?.id).data ?? 0
   // Les calendriers prennent toute la largeur des grands écrans.
   const { pathname } = useLocation()
+  // Accord à donner (ou à redonner) : la page Compte reste accessible, pour exporter ses données ou partir.
+  const mustAccept = profile !== undefined && pathname !== '/compte' && needsTermsAcceptance(profile.terms_version, TERMS_VERSION)
   const width = pathname === '/planning' || /^\/athletes\/[^/]+\/?$/.test(pathname) ? 'max-w-7xl' : 'max-w-5xl'
 
   return (
@@ -71,7 +76,7 @@ export function AppLayout() {
       </header>
 
       <main className={`mx-auto ${width} px-4 py-6`}>
-        <Outlet />
+        {mustAccept && profile ? <ConsentGate role={profile.role} firstTime={profile.terms_version === null} /> : <Outlet />}
       </main>
 
       <nav

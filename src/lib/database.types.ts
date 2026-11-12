@@ -23,6 +23,9 @@ export type Database = {
           full_name: string
           email: string
           email_notifications: boolean
+          /** Version des conditions acceptées (0.7.0) ; null tant que l'accord n'est pas donné. */
+          terms_version: string | null
+          terms_accepted_at: string | null
           created_at: string
           updated_at: string
         }
@@ -274,6 +277,22 @@ export type Database = {
         Update: never
         Relationships: []
       }
+      /** Journal des erreurs du site (0.7.0) : aucun droit depuis le site, écrit par report_client_error. */
+      client_errors: {
+        Row: {
+          id: number
+          user_id: string | null
+          occurred_at: string
+          app_version: string
+          path: string
+          message: string
+          stack: string
+          user_agent: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       workout_comments: {
         Row: {
           id: string
@@ -358,6 +377,13 @@ export type Database = {
     }
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: string }
+      accept_terms: { Args: { p_version: string }; Returns: undefined }
+      leave_coach: { Args: { p_coach: string }; Returns: undefined }
+      delete_my_account: { Args: Record<PropertyKey, never>; Returns: undefined }
+      report_client_error: {
+        Args: { p_message: string; p_stack?: string; p_path?: string; p_version?: string; p_user_agent?: string }
+        Returns: undefined
+      }
       get_invitation: {
         Args: { p_token: string }
         Returns: { coach_name: string; athlete_name: string; status: InvitationStatus }[]

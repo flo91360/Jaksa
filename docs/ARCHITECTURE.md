@@ -33,7 +33,7 @@ chaque requête est faite au nom de l'utilisateur connecté, et les règles RLS
 
 | Table / vue | Rôle |
 |---|---|
-| `profiles` | Un profil par compte : nom, e-mail, rôle (`coach` ou `athlete`) |
+| `profiles` | Un profil par compte : nom, e-mail, rôle (`coach` ou `athlete`), accord donné (`terms_version`, `terms_accepted_at`) |
 | `coach_athletes` | Lien coach ↔ athlète, statut `active` / `archived` |
 | `invitations` | Liens d'invitation : jeton aléatoire de 244 bits, usage unique, valable 14 jours |
 | `athlete_profiles` | Fiche athlète : objectifs, blessures, disponibilités, physiologie, zones (JSON) |
@@ -51,6 +51,7 @@ chaque requête est faite au nom de l'utilisateur connecté, et les règles RLS
 | `email_outbox` (0.3.0) | File d'attente des e-mails, inaccessible depuis le site |
 | `garmin_sync_runs` (0.4.1) | Journal de l'import automatique : heure, résultat, nombre d'activités (un mois) |
 | `garmin_activity_details` (0.5.0) | Détail d'une activité, lu dans son fichier `.FIT` : séries de FC, vitesse, altitude, cadence, puissance et tracé GPS (1 800 points au plus), tours, chiffres de la montre |
+| `client_errors` (0.7.0) | Journal des erreurs du site (message, page, version, navigateur), gardé 30 jours ; aucun droit depuis le site |
 | `garmin_activities` (0.4.0) | Activités importées depuis Garmin : identifiant Garmin, séance rattachée, durée, distance, D+, FC moyenne et max |
 
 Zones (`athlete_profiles.zones`) : tableau de 7 zones au plus, chacune de la forme
@@ -96,12 +97,41 @@ quand le coach les met à jour. La base vérifie ce format (`workout_steps_are_v
 | File d'attente des e-mails | **jamais** | **jamais** | — |
 | Activités Garmin | lit | importe, lit, supprime les siennes | — |
 | Détail des activités (.FIT) | lit | lit (seule la fonction `garmin-sync` écrit) | — |
+| Lien coach ↔ athlète | archive, réactive | **quitte son coach** (`leave_coach`) | — |
+| Son compte | exporte, supprime (`delete_my_account`) | exporte, supprime | — |
+| Journal des erreurs du site | **jamais** | **jamais** | — |
 
-Ces règles sont vérifiées automatiquement par `tests/db/socle.test.ts`, `tests/db/planification.test.ts` et
-`tests/db/echanges.test.ts` et `tests/db/garmin.test.ts`. Un message ou un commentaire ne se modifie pas ; « lu » et « vu par le coach » ne
+Ces règles sont vérifiées automatiquement par `tests/db/socle.test.ts`, `tests/db/planification.test.ts`,
+`tests/db/echanges.test.ts`, `tests/db/garmin.test.ts` et `tests/db/comptes.test.ts`. Un message ou un commentaire ne se modifie pas ; « lu » et « vu par le coach » ne
 s'écrivent qu'au travers de `mark_conversation_read` et `mark_workout_seen`.
 
 Une séance ne change jamais d'athlète : la copier vers un autre athlète crée une nouvelle séance.
+
+## Pages publiques, accord et données personnelles (0.7.0)
+
+- `/` affiche la présentation du site à un visiteur et renvoie une personne connectée vers son espace
+  (`HomeOrLanding`). `/confidentialite`, `/conditions` et `/mentions-legales` sont visibles sans compte
+  (`src/pages/public/`). Les coordonnées de l'éditeur viennent de `src/lib/site.ts` (variables `VITE_PUBLISHER_*`).
+- **Accord** : la case cochée à l'inscription part dans les métadonnées (`terms_version`) et le déclencheur
+  `handle_new_user` la note sur le profil. Un compte sans accord pour la version en cours (`TERMS_VERSION`) voit
+  `ConsentGate` à la place des pages, sauf « Compte » ; `accept_terms` enregistre l'accord. Changer `TERMS_VERSION`
+  redemande l'accord à tout le monde.
+- **Export** (`src/api/account.ts`) : le site lit, avec les droits de la personne, tout ce qui lui appartient et en
+  fait un fichier JSON. Aucune fonction privilégiée : l'export ne peut rien contenir qu'elle ne voie déjà.
+- **Quitter son coach** : `leave_coach` supprime le lien et les notes privées. Toutes les règles RLS passant par
+  `coach_athletes`, le coach perd aussitôt tout accès ; l'athlète garde ses données.
+- **Suppression du compte** : `delete_my_account` supprime la ligne de `auth.users`, et les clés étrangères
+  `ON DELETE CASCADE` emportent le reste. Pour un coach, les séances qu'il a planifiées partent avec lui.
+
+## Sécurité du navigateur et suivi des erreurs (0.7.0)
+
+- `public/_headers` (lu par Cloudflare) pose une politique `Content-Security-Policy` stricte : scripts du site
+  seulement, connexions vers Supabase seulement, affichage dans une autre page interdit. Conséquence : pas de
+  script écrit dans `index.html` (le thème est appliqué par `public/theme-init.js`), et tout nouveau service
+  externe doit y être ajouté.
+- `ErrorBoundary` remplace la page blanche par un écran d'erreur. Cette erreur, comme celles qui échappent à React,
+  est envoyée à `report_client_error` (`src/lib/errorReporting.ts`) : 5 par visite, 20 par personne et par heure,
+  seulement pour une personne connectée. La table `client_errors` se lit dans le tableau de bord Supabase.
 
 ## Export `.FIT`
 

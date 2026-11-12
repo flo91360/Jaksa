@@ -1,10 +1,15 @@
 import { type FormEvent, useState } from 'react'
+import { downloadJson, exportAccountData, useDeleteAccount, useLeaveCoach } from '../api/account.ts'
+import { useMyCoaches } from '../api/athletes.ts'
 import { useMyProfile, useUpdateEmailNotifications, useUpdateMyName } from '../api/profile.ts'
 import { ThemeChoice } from '../components/ThemeToggle.tsx'
 import { GarminAttribution, GarminImportButton } from '../components/garmin/Garmin.tsx'
-import { Alert, Button, Card, LoadingBlock, PageHeader, SavedHint, TextField } from '../components/ui.tsx'
+import { Alert, Button, Card, LegalLinks, LoadingBlock, Modal, PageHeader, SavedHint, TextField } from '../components/ui.tsx'
+import { DELETE_CONFIRMATION, confirmsDeletion, exportFileName } from '../domain/account.ts'
+import { todayIso } from '../domain/calendar.ts'
 import type { Profile } from '../lib/database.types.ts'
 import { errorMessage } from '../lib/errors.ts'
+import { APP_VERSION, SITE } from '../lib/site.ts'
 import { supabase } from '../lib/supabase.ts'
 import { NewPasswordForm } from './PasswordPages.tsx'
 
@@ -41,13 +46,176 @@ export function AccountPage() {
         <Card title="Apparence" description="« Système » suit le réglage clair ou sombre du téléphone ou de l’ordinateur." className="lg:col-span-2">
           <ThemeChoice />
         </Card>
+        {profile.data?.role === 'athlete' && (
+          <Card
+            title="Mon coach"
+            description="Ton coach voit ta fiche, tes séances, tes retours et les activités de ta montre. Tu peux retirer cet accès à tout moment."
+            className="lg:col-span-2"
+          >
+            <MyCoaches athleteId={profile.data.id} />
+          </Card>
+        )}
+        {profile.data && (
+          <Card
+            title="Mes données"
+            description="Tout ce que le site enregistre à ton sujet t’appartient : tu peux l’emporter ou l’effacer."
+            className="lg:col-span-2"
+          >
+            <MyData profile={profile.data} />
+          </Card>
+        )}
         <Card title="Session" className="lg:col-span-2">
           <Button variant="secondary" onClick={() => void supabase.auth.signOut()}>
             Se déconnecter
           </Button>
         </Card>
       </div>
+      <footer className="mt-8 space-y-2 text-center">
+        <LegalLinks />
+        <p className="text-xs text-slate-500">
+          {SITE.name}
+          {APP_VERSION && ` · version ${APP_VERSION}`}
+          {SITE.contactEmail && (
+            <>
+              {' · '}
+              <a href={`mailto:${SITE.contactEmail}`} className="hover:underline">
+                {SITE.contactEmail}
+              </a>
+            </>
+          )}
+        </p>
+      </footer>
     </>
+  )
+}
+
+/** Coachs de l'athlète, avec le retrait de l'accès (droit de retirer son accord). */
+function MyCoaches({ athleteId }: { athleteId: string }) {
+  const coaches = useMyCoaches(athleteId)
+  const leave = useLeaveCoach()
+  if (coaches.isPending) return <LoadingBlock />
+  if (coaches.isError) return <Alert tone="error">{errorMessage(coaches.error)}</Alert>
+  if (coaches.data.length === 0) {
+    return <p className="text-sm text-slate-600">Tu n’es rattaché à aucun coach : personne d’autre que toi ne voit tes données.</p>
+  }
+  return (
+    <div className="space-y-3">
+      <ul className="divide-y divide-slate-100">
+        {coaches.data.map((coach) => (
+          <li key={coach.coach_id} className="flex flex-wrap items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
+            <span className="min-w-0">
+              <span className="block truncate font-medium text-slate-900">{coach.coach_name || 'Ton coach'}</span>
+              <span className="block truncate text-sm text-slate-500">{coach.coach_email}</span>
+            </span>
+            <Button
+              variant="danger"
+              busy={leave.isPending && leave.variables === coach.coach_id}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    `Quitter ${coach.coach_name || 'ce coach'} ? Il ne verra plus ta fiche, tes séances ni tes activités, et ne pourra plus t’écrire. Tu gardes tout ton historique. Pour le rejoindre à nouveau, il devra t’envoyer une invitation.`,
+                  )
+                ) {
+                  leave.mutate(coach.coach_id)
+                }
+              }}
+            >
+              Quitter ce coach
+            </Button>
+          </li>
+        ))}
+      </ul>
+      {leave.isError && <Alert tone="error">{errorMessage(leave.error)}</Alert>}
+    </div>
+  )
+}
+
+/** Export de toutes ses données et suppression du compte. */
+function MyData({ profile }: { profile: Profile }) {
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const [exported, setExported] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const download = async () => {
+    setExporting(true)
+    setExportError(null)
+    setExported(false)
+    try {
+      const content = await exportAccountData(profile.id, profile.role)
+      downloadJson(exportFileName(profile.full_name, todayIso()), content)
+      setExported(true)
+    } catch (error) {
+      setExportError(errorMessage(error))
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button variant="secondary" busy={exporting} onClick={() => void download()}>
+          Télécharger mes données
+        </Button>
+        <Button variant="danger" onClick={() => setDeleting(true)}>
+          Supprimer mon compte
+        </Button>
+      </div>
+      <p className="text-sm text-slate-600">
+        Le téléchargement est un fichier JSON :{' '}
+        {profile.role === 'coach'
+          ? 'ton profil, tes séances types, les séances que tu as planifiées, tes notes et tes messages.'
+          : 'ton profil, ta fiche, tes séances, tes retours, tes messages et les activités de ta montre.'}
+      </p>
+      {exported && <Alert tone="success">Fichier prêt : regarde dans tes téléchargements.</Alert>}
+      {exportError && <Alert tone="error">{exportError}</Alert>}
+      {deleting && <DeleteAccountDialog profile={profile} onClose={() => setDeleting(false)} />}
+    </div>
+  )
+}
+
+function DeleteAccountDialog({ profile, onClose }: { profile: Profile; onClose: () => void }) {
+  const remove = useDeleteAccount()
+  const [confirmation, setConfirmation] = useState('')
+  return (
+    <Modal
+      title="Supprimer mon compte"
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button
+            variant="danger"
+            busy={remove.isPending}
+            disabled={!confirmsDeletion(confirmation)}
+            // La session se ferme : retour à l'accueil public.
+            onClick={() => remove.mutate(undefined, { onSuccess: () => window.location.assign('/') })}
+          >
+            Supprimer définitivement
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Alert tone="warning">
+          {profile.role === 'coach'
+            ? 'Ton compte, tes séances types, tes notes, tes messages et toutes les séances que tu as planifiées pour tes athlètes seront effacés tout de suite. Tes athlètes gardent leur compte et les activités de leur montre.'
+            : 'Ton compte, ta fiche, tes séances, tes retours, tes messages et les activités de ta montre seront effacés tout de suite. Ton coach ne verra plus rien de toi.'}{' '}
+          C’est définitif : pense à télécharger tes données avant.
+        </Alert>
+        <TextField
+          label={`Pour confirmer, écris ${DELETE_CONFIRMATION}`}
+          value={confirmation}
+          autoComplete="off"
+          autoCapitalize="characters"
+          onChange={(event) => setConfirmation(event.target.value)}
+        />
+        {remove.isError && <Alert tone="error">{errorMessage(remove.error)}</Alert>}
+      </div>
+    </Modal>
   )
 }
 

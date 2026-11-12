@@ -122,6 +122,6 @@ montrer les données d'un utilisateur à quelqu'un d'autre, coach compris.
 - **RGPD** : la FC, les blessures et la douleur sont des données de santé. Elles imposent :
   - un hébergement dans l'UE (projet Supabase en région Europe) ;
   - un accès limité à l'athlète et à son coach (règles RLS, testées automatiquement) ;
-  - à prévoir : une page de confidentialité, l'export et la suppression du compte à la demande.
+  - fait en 0.7.0 : pages de confidentialité, de conditions et de mentions légales, accord explicite à l'inscription, export et suppression du compte par l'utilisateur, départ d'un coach.
 - **Sauvegardes** : l'offre gratuite de Supabase n'en fait pas. Depuis la 0.2.0, une tâche GitHub fait une sauvegarde quotidienne chiffrée, gardée 30 jours. Elle reste à activer en ajoutant deux secrets (voir `docs/DEPLOIEMENT.md`, étape 5).
 - **Reprise de l'existant** : vérifier ce que Nolio permet d'exporter (séances types, historique).

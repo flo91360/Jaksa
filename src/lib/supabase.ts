@@ -16,7 +16,10 @@ export const supabase = createClient<Database>(url || 'http://localhost:54321', 
   },
 })
 
-/** Adresse publique d'une page de l'application (liens d'invitation, e-mails). */
+/**
+ * Adresse publique d'une page de l'application (liens d'invitation, e-mails).
+ * VITE_SITE_URL sert quand l'origine n'est pas celle du site : dans une application mobile, par exemple.
+ */
 export function appUrl(path: string): string {
-  return new URL(path, window.location.origin).toString()
+  return new URL(path, import.meta.env.VITE_SITE_URL || window.location.origin).toString()
 }

@@ -1,5 +1,19 @@
 # Journal des versions
 
+## [0.7.0] - 2026-11-12
+
+Le site devient présentable au public, et chacun reprend la main sur ses données.
+
+- **Page d'accueil publique** : un visiteur qui arrive sur le site voit ce qu'il fait, avant la connexion. Une personne connectée arrive toujours directement dans son espace.
+- **Pages légales**, visibles sans compte et liées en bas de chaque écran : **politique de confidentialité** (`/confidentialite`), **conditions d'utilisation** (`/conditions`) et **mentions légales** (`/mentions-legales`). Garmin les demande pour ouvrir l'accès à ses API.
+- **Accord explicite** : une case à cocher à la création du compte (conditions, confidentialité et, pour l'athlète, partage de ses données de santé avec son coach). Les comptes déjà créés la voient une fois, à leur prochaine visite.
+- **Compte › Mes données** :
+  - **Télécharger mes données** : un fichier avec tout ce que le site enregistre à ton sujet ;
+  - **Supprimer mon compte** : efface le compte et ses données, après confirmation.
+- **Compte › Mon coach** (athlète) : **Quitter ce coach** lui retire aussitôt tout accès. L'athlète garde son historique.
+- Si une page plante, un écran « Un problème est survenu » remplace la page blanche, et l'erreur est notée pour être corrigée.
+- Sécurité : le site interdit désormais au navigateur de charger tout script ou contenu venu d'ailleurs.
+
 ## [0.6.0] - 2026-11-09
 
 - **Mode sombre** pour le coach et l'athlète, courbes des séances comprises. Par défaut, l'appli suit le réglage clair ou sombre du téléphone ou de l'ordinateur. Le bouton en haut à droite passe de « système » à « clair » puis « sombre », et le choix est retenu sur l'appareil ; il se règle aussi dans **Compte › Apparence**.
