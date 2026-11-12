@@ -59,3 +59,14 @@ describe('planification', () => {
     expect(formatRaceDetails({ distance_km: null, elevation_gain_m: null })).toBe('')
   })
 })
+
+describe('séances souples', () => {
+  it('une copie reste souple, une séance à jour fixe ne le devient pas', async () => {
+    const { copyWorkout } = await import('./planning.ts')
+    const content = { kind: 'run' as const, title: '10 × 400 m', description: '', steps: [] }
+    const target = { athleteId: 'a', date: '2026-11-18' }
+    expect(copyWorkout({ ...content, flexible: true }, target, [])).toMatchObject({ flexible: true, scheduled_on: '2026-11-18' })
+    expect(copyWorkout({ ...content, flexible: false }, target, [])).not.toHaveProperty('flexible')
+    expect(copyWorkout(content, target, [])).not.toHaveProperty('flexible')
+  })
+})

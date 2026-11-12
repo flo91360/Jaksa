@@ -100,6 +100,8 @@ export function useGarminImport(athleteId: string) {
             .from('workouts')
             .select('id, scheduled_on, kind, position')
             .eq('athlete_id', athleteId)
+            // Une séance souple sans jour choisi est rangée au lundi : ce n'est pas sa date, on ne la rapproche pas.
+            .or('flexible.eq.false,placed_at.not.is.null')
             // La veille du premier jour aussi : une séance peut être faite avec un jour de retard.
             .gte('scheduled_on', addDays(range.from, -1))
             .lte('scheduled_on', range.to),

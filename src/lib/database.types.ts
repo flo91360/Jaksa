@@ -3,6 +3,7 @@
  * `supabase gen types typescript`. À tenir à jour avec supabase/migrations.
  */
 import type { FeedbackStatus, Pain } from '../domain/feedback.ts'
+import type { CoachingMode } from '../domain/flexible.ts'
 import type { GarminActivityValues } from '../domain/garmin.ts'
 import type { ActivityDetail } from '../domain/activityDetail.ts'
 import type { PlanCode } from '../domain/plans.ts'
@@ -40,11 +41,13 @@ export type Database = {
           coach_id: string
           athlete_id: string
           status: LinkStatus
+          /** Mode de coaching choisi par le coach pour cet athlète (0.9.0). */
+          mode: CoachingMode
           created_at: string
           updated_at: string
         }
         Insert: never
-        Update: { status?: LinkStatus }
+        Update: { status?: LinkStatus; mode?: CoachingMode }
         Relationships: []
       }
       /** Offre de chaque coach (0.8.0) : lue par le site, jamais écrite. */
@@ -142,6 +145,10 @@ export type Database = {
           title: string
           description: string
           steps: WorkoutItem[]
+          /** Séance « à faire dans la semaine » : l'athlète choisit le jour (0.9.0). */
+          flexible: boolean
+          /** Moment où l'athlète a choisi son jour ; null : pas encore placée (rangée au lundi). */
+          placed_at: string | null
           created_at: string
           updated_at: string
         }
@@ -153,6 +160,7 @@ export type Database = {
           title: string
           description?: string
           steps?: WorkoutItem[]
+          flexible?: boolean
         }
         Update: {
           scheduled_on?: string
@@ -161,7 +169,40 @@ export type Database = {
           title?: string
           description?: string
           steps?: WorkoutItem[]
+          flexible?: boolean
         }
+        Relationships: []
+      }
+      /** Volume de la semaine fixé par le coach : fourchette de kilomètres (0.9.0). */
+      weekly_targets: {
+        Row: {
+          athlete_id: string
+          week_start: string
+          coach_id: string
+          km_min: number
+          km_max: number
+          note: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: { athlete_id: string; week_start: string; km_min: number; km_max: number; note?: string }
+        Update: { km_min?: number; km_max?: number; note?: string }
+        Relationships: []
+      }
+      /** Sorties déclarées à la main par l'athlète (0.9.0). */
+      athlete_runs: {
+        Row: {
+          id: string
+          athlete_id: string
+          run_on: string
+          distance_m: number
+          duration_s: number | null
+          elevation_gain_m: number | null
+          note: string
+          created_at: string
+        }
+        Insert: { run_on: string; distance_m: number; duration_s?: number | null; elevation_gain_m?: number | null; note?: string }
+        Update: { run_on?: string; distance_m?: number; duration_s?: number | null; elevation_gain_m?: number | null; note?: string }
         Relationships: []
       }
       workout_templates: {
@@ -385,6 +426,8 @@ export type Database = {
           coach_email: string
           athlete_name: string
           athlete_email: string
+          /** Absent tant que la migration de la 0.9.0 n'est pas appliquée. */
+          mode?: CoachingMode
         }
         Relationships: []
       }
@@ -392,6 +435,7 @@ export type Database = {
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: string }
       accept_terms: { Args: { p_version: string }; Returns: undefined }
+      place_flexible_workout: { Args: { p_workout: string; p_day: string | null }; Returns: string }
       leave_coach: { Args: { p_coach: string }; Returns: undefined }
       delete_my_account: { Args: Record<PropertyKey, never>; Returns: undefined }
       report_client_error: {
@@ -423,6 +467,9 @@ export type CoachLink = PublicSchema['Views']['coach_links']['Row']
 export type Workout = PublicSchema['Tables']['workouts']['Row']
 export type WorkoutInsert = PublicSchema['Tables']['workouts']['Insert']
 export type WorkoutUpdate = PublicSchema['Tables']['workouts']['Update']
+export type WeeklyTarget = PublicSchema['Tables']['weekly_targets']['Row']
+export type AthleteRun = PublicSchema['Tables']['athlete_runs']['Row']
+export type AthleteRunInsert = PublicSchema['Tables']['athlete_runs']['Insert']
 export type WorkoutTemplate = PublicSchema['Tables']['workout_templates']['Row']
 export type WorkoutTemplateInsert = PublicSchema['Tables']['workout_templates']['Insert']
 export type Race = PublicSchema['Tables']['races']['Row']

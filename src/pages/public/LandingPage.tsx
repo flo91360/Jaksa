@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { PlanTile } from '../../components/PlanCard.tsx'
 import { ButtonLink, PublicLayout } from '../../components/PublicLayout.tsx'
+import { COACHING_MODES } from '../../domain/flexible.ts'
 import { LISTED_PLANS } from '../../domain/plans.ts'
 import { SITE } from '../../lib/site.ts'
 
@@ -118,6 +119,33 @@ export function LandingPage() {
               <p className="mt-1 text-sm text-slate-600">{feature.text}</p>
             </li>
           ))}
+        </ul>
+      </Section>
+
+      <Section
+        title="Deux façons de coacher"
+        intro="Chaque athlète a son mode, que le coach choisit et change quand il veut."
+      >
+        <ul className="grid gap-4 md:grid-cols-2">
+          <li className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 className="font-semibold text-slate-900">{COACHING_MODES.strict.label}</h3>
+            <p className="mt-1 text-sm text-slate-600">{COACHING_MODES.strict.summary}</p>
+          </li>
+          <li className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 className="font-semibold text-slate-900">{COACHING_MODES.flexible.label}</h3>
+            <p className="mt-1 text-sm text-slate-600">{COACHING_MODES.flexible.summary}</p>
+            <div aria-hidden="true" className="mt-4 rounded-xl bg-slate-50 p-3">
+              <p className="text-sm text-slate-600">
+                <strong className="text-lg font-bold text-slate-900">26 km</strong> courus sur 35 à 45 km
+              </p>
+              <div className="relative mt-2 h-2.5 rounded-full bg-slate-200">
+                <div className="absolute inset-y-0 left-[68%] w-[19%] rounded-sm bg-emerald-200" />
+                <div className="absolute inset-y-0 left-0 w-1/2 rounded-full bg-emerald-600" />
+              </div>
+              <p className="mt-2 text-sm font-semibold text-slate-800">Il te reste entre 9 et 19 km à courir.</p>
+              <p className="mt-1 text-xs text-slate-500">Séances : 1 faite, 1 à faire</p>
+            </div>
+          </li>
         </ul>
       </Section>
 

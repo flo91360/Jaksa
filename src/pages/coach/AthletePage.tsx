@@ -13,6 +13,7 @@ import { useUpcomingRaces } from '../../api/planning.ts'
 import { RaceEditor, RaceList } from '../../components/RaceEditor.tsx'
 import { ZoneEditor } from '../../components/ZoneEditor.tsx'
 import { PlanningBoard } from '../../components/calendar/PlanningBoard.tsx'
+import { CoachWeekPanel, CoachingModeCard } from '../../components/flexible/CoachWeekPanel.tsx'
 import { Alert, Button, Card, EmptyState, LoadingBlock, PageHeader, TabLinks } from '../../components/ui.tsx'
 import { todayIso } from '../../domain/calendar.ts'
 import type { AthleteProfile, CoachLink, Race } from '../../lib/database.types.ts'
@@ -132,6 +133,8 @@ function AthletePlanning({ athlete, fiche }: { athlete: CoachLink; fiche: Athlet
   const races = useUpcomingRaces(athlete.athlete_id, today)
   const [editing, setEditing] = useState<Race | 'new' | null>(null)
   const name = athlete.athlete_name || athlete.athlete_email
+  const mode = athlete.mode ?? 'strict'
+  const option = { id: athlete.athlete_id, name, zones: fiche.zones, mode }
 
   return (
     <div className="space-y-6">
@@ -141,7 +144,9 @@ function AthletePlanning({ athlete, fiche }: { athlete: CoachLink; fiche: Athlet
           traduisent en FC et en allure.
         </Alert>
       )}
-      <PlanningBoard athletes={[{ id: athlete.athlete_id, name, zones: fiche.zones }]} multi={false} />
+      <CoachingModeCard coachId={athlete.coach_id} athleteId={athlete.athlete_id} mode={mode} />
+      {mode === 'flexible' && <CoachWeekPanel athlete={option} />}
+      <PlanningBoard athletes={[option]} multi={false} />
       <Card
         title="Courses et objectifs"
         description="Priorité A : objectif de la saison ; B : course importante ; C : préparation."

@@ -21,6 +21,7 @@ export function PlanningPage() {
     id: link.athlete_id,
     name: link.athlete_name || link.athlete_email,
     zones: profiles.data?.find((p) => p.athlete_id === link.athlete_id)?.zones ?? [],
+    mode: link.mode,
   }))
 
   return (

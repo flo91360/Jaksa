@@ -9,6 +9,7 @@ import {
   weekDays,
 } from '../../domain/calendar.ts'
 import { activityFigures, garminSportLabel } from '../../domain/garmin.ts'
+import { isUnplaced } from '../../domain/flexible.ts'
 import { groupByDate } from '../../domain/planning.ts'
 import { formatTotals, workoutTotals } from '../../domain/workouts.ts'
 import type { HrZone } from '../../domain/zones.ts'
@@ -361,6 +362,18 @@ function WorkoutCard({
       <span className={`block truncate font-medium text-slate-900 ${compact ? 'text-xs' : 'text-sm'}`}>{workout.title}</span>
       {totals && <span className={`block truncate text-slate-500 ${compact ? 'text-[11px]' : 'text-xs'}`}>{totals}</span>}
       <span className="flex flex-wrap items-center gap-1">
+        {workout.flexible && (
+          <span
+            className={`mt-0.5 rounded bg-violet-100 font-semibold text-violet-900 ${compact ? 'px-1 text-[10px]' : 'px-1.5 text-[11px]'}`}
+            title={
+              isUnplaced(workout)
+                ? 'À faire dans la semaine : l’athlète n’a pas encore choisi son jour'
+                : 'Séance souple : jour choisi par l’athlète'
+            }
+          >
+            {isUnplaced(workout) ? (compact ? '↔' : '↔ dans la semaine') : compact ? '↔✓' : '↔ jour choisi'}
+          </span>
+        )}
         {watched && (
           <span
             className={`mt-0.5 rounded bg-sky-100 font-bold text-sky-800 ${compact ? 'px-1 text-[10px]' : 'px-1.5 text-[11px]'}`}

@@ -15,6 +15,7 @@ import {
   todayIso,
   visibleRange,
 } from '../../domain/calendar.ts'
+import { isUnplaced } from '../../domain/flexible.ts'
 import { copyWorkout, duplicateWeek, nextPosition } from '../../domain/planning.ts'
 import type { Race, Workout } from '../../lib/database.types.ts'
 import { errorMessage } from '../../lib/errors.ts'
@@ -25,7 +26,7 @@ import { PlanningCalendar } from './PlanningCalendar.tsx'
 
 type Editing =
   | { type: 'workout'; workout: Workout }
-  | { type: 'new-workout'; athleteId: string | null; date: IsoDate }
+  | { type: 'new-workout'; athleteId: string | null; date: IsoDate; flexible?: boolean }
   | { type: 'race'; race: Race }
   | { type: 'new-race'; athleteId: string; date?: IsoDate }
   | { type: 'duplicate-week' }
@@ -98,6 +99,8 @@ export function PlanningBoard({ athletes, multi }: { athletes: AthleteOption[]; 
           setNotice(`« ${workout.title} » copiée${target.athleteId !== workout.athlete_id && who ? ` pour ${who}` : ''}.`)
         },
       })
+    } else if (isUnplaced(workout) && startOfWeek(target.date) === startOfWeek(workout.scheduled_on)) {
+      setNotice(`« ${workout.title} » est à faire dans la semaine : c’est l’athlète qui choisit son jour. Pour imposer une date, ouvre la séance et décoche « À faire dans la semaine ».`)
     } else {
       update.mutate({
         id: workout.id,
@@ -141,7 +144,17 @@ export function PlanningBoard({ athletes, multi }: { athletes: AthleteOption[]; 
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button onClick={() => setEditing({ type: 'new-workout', athleteId: multi ? null : (ids[0] ?? null), date: view === 'week' && anchor < today ? startOfWeek(anchor) : anchor })}>
+        <Button
+          onClick={() =>
+            setEditing({
+              type: 'new-workout',
+              athleteId: multi ? null : (ids[0] ?? null),
+              date: view === 'week' && anchor < today ? startOfWeek(anchor) : anchor,
+              // Athlète suivi en mode souple : par défaut, une séance « à faire dans la semaine ».
+              flexible: !multi && athletes[0]?.mode === 'flexible',
+            })
+          }
+        >
           Nouvelle séance
         </Button>
         {!multi && ids[0] && (
@@ -196,7 +209,7 @@ export function PlanningBoard({ athletes, multi }: { athletes: AthleteOption[]; 
       )}
       {shown?.type === 'new-workout' && (
         <WorkoutEditor
-          initial={{ athleteId: shown.athleteId ?? undefined, date: shown.date }}
+          initial={{ athleteId: shown.athleteId ?? undefined, date: shown.date, flexible: shown.flexible }}
           athletes={athletes}
           existing={list}
           onClose={close}

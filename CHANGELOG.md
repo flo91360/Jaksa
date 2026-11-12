@@ -1,5 +1,19 @@
 # Journal des versions
 
+## [0.9.0] - 2026-11-13
+
+Deux modes de coaching, au choix du coach pour chaque athlète (fiche de l'athlète › Planning › **Mode de coaching**).
+
+- **Strict** (le fonctionnement d'origine) : le coach fixe les jours et les séances, l'athlète suit le calendrier.
+- **Souple** : le coach donne le **volume de la semaine** (une fourchette, par exemple 35 à 45 km), une consigne, et des **séances « à faire dans la semaine »** (le fractionné, par exemple). L'athlète s'organise.
+  - **Côté athlète**, la carte **Ton plan de la semaine** montre les kilomètres courus, la fourchette et ce qu'il **reste à courir** (« entre 9 et 19 km »), les séances **à faire** et les séances **faites**. Pour chaque séance, l'athlète choisit son jour, ou touche **C'est fait** puis donne son retour. Il peut aussi **ajouter une sortie** faite en dehors des séances.
+  - **Côté coach**, le panneau **Semaine souple** suit la semaine affichée par le calendrier : volume à fixer, kilomètres courus, séances faites ou non, jour choisi par l'athlète.
+  - Les kilomètres viennent de la montre quand elle est reliée, sinon des retours de séance et des sorties ajoutées ; une même sortie n'est jamais comptée deux fois.
+- Dans le calendrier, une séance souple porte la mention **↔ dans la semaine**, puis **↔ jour choisi**. Le coach peut toujours imposer une date en décochant « À faire dans la semaine ».
+- L'e-mail « ta séance de demain » ne part pour une séance souple qu'une fois son jour choisi.
+- La page d'accueil présente les deux modes ; le fichier « Télécharger mes données » contient les volumes et les sorties ajoutées.
+- Correction : quand une page plante, l'écran « Un problème est survenu » s'affiche bien (depuis la 0.7.0, il restait blanc).
+
 ## [0.8.0] - 2026-11-12
 
 Rob1Coach devient une plateforme : chaque coach y ouvre son espace, avec ses propres athlètes.

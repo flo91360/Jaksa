@@ -7,6 +7,7 @@ import { useUpcomingRaces, useWorkouts } from '../../api/planning.ts'
 import { useMyProfile } from '../../api/profile.ts'
 import { useUserId } from '../../auth/auth-context.ts'
 import { PriorityBadge } from '../../components/RaceEditor.tsx'
+import { AthleteWeekCard } from '../../components/flexible/AthleteWeekCard.tsx'
 import { WorkoutExchanges } from '../../components/exchanges/WorkoutExchanges.tsx'
 import { RecentGarminCard } from '../../components/garmin/Garmin.tsx'
 import { FEEDBACK_STATUS } from '../../domain/feedback.ts'
@@ -14,6 +15,7 @@ import { Alert, Card, EmptyState, LoadingBlock, PageHeader } from '../../compone
 import { FitExport, WorkoutView } from '../../components/workout/WorkoutView.tsx'
 import { KIND_STYLES } from '../../components/workout/kindStyles.ts'
 import { addDays, formatLongDay, formatRelativeDays, todayIso } from '../../domain/calendar.ts'
+import { datedWorkouts, isUnplaced } from '../../domain/flexible.ts'
 import { formatRaceDetails, groupByDate } from '../../domain/planning.ts'
 import { formatTotals, workoutTotals } from '../../domain/workouts.ts'
 import type { HrZone } from '../../domain/zones.ts'
@@ -34,7 +36,9 @@ export function TodayPage() {
   const name = firstName(me.data?.full_name ?? '')
   const zones = profile.data?.zones ?? []
 
-  const byDay = groupByDate(workouts.data ?? [], (w) => w.scheduled_on)
+  // Les séances souples sans jour choisi sont dans « Ton plan de la semaine », pas à une date.
+  const byDay = groupByDate(datedWorkouts(workouts.data ?? []), (w) => w.scheduled_on)
+  const flexibleMode = (coaches.data ?? []).some((coach) => coach.mode === 'flexible')
   const todays = byDay.get(today) ?? []
   const week = Array.from({ length: 7 }, (_, i) => addDays(today, i + 1))
   const race = races.data?.[0]
@@ -66,6 +70,8 @@ export function TodayPage() {
               </div>
             )}
           </Card>
+
+          <AthleteWeekCard athleteId={athleteId} today={today} zones={zones} always={flexibleMode} />
 
           <RecentWorkouts athleteId={athleteId} today={today} />
 
@@ -173,7 +179,7 @@ function RecentWorkouts({ athleteId, today }: { athleteId: string; today: string
   const workouts = useWorkouts([athleteId], from, to)
   const activity = useWorkoutActivity([athleteId], from, to)
   if (isMissingRelation(activity.error) || !workouts.data || !activity.data) return null
-  const list = workouts.data.filter((w) => w.kind !== 'rest').reverse()
+  const list = workouts.data.filter((w) => w.kind !== 'rest' && !isUnplaced(w)).reverse()
   if (list.length === 0) return null
   const missing = list.filter((w) => !activity.data.get(w.id)?.status).length
   return (

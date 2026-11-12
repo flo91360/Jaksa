@@ -13,6 +13,8 @@ export type PlannedWorkoutDraft = WorkoutContent & {
   athlete_id: string
   scheduled_on: IsoDate
   position: number
+  /** Séance « à faire dans la semaine » : la base la range au lundi de la semaine de scheduled_on. */
+  flexible?: boolean
 }
 
 type Placed = { athlete_id: string; scheduled_on: IsoDate; position: number }
@@ -34,7 +36,7 @@ export function contentOf(source: WorkoutContent): WorkoutContent {
 
 /** Copie d'une séance vers un autre jour (et éventuellement un autre athlète). */
 export function copyWorkout(
-  source: WorkoutContent,
+  source: WorkoutContent & { flexible?: boolean },
   target: { athleteId: string; date: IsoDate },
   existing: Placed[],
 ): PlannedWorkoutDraft {
@@ -43,6 +45,8 @@ export function copyWorkout(
     athlete_id: target.athleteId,
     scheduled_on: target.date,
     position: nextPosition(existing, target.athleteId, target.date),
+    // Une séance souple reste souple : dans sa nouvelle semaine, l'athlète choisira de nouveau son jour.
+    ...(source.flexible ? { flexible: true } : {}),
   }
 }
 
@@ -52,7 +56,7 @@ export function copyWorkout(
  * sont conservées : les copies se placent après elles.
  */
 export function duplicateWeek(
-  workouts: (WorkoutContent & Placed)[],
+  workouts: (WorkoutContent & Placed & { flexible?: boolean })[],
   athleteId: string,
   fromWeek: IsoDate,
   toWeek: IsoDate,
