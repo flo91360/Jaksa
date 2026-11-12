@@ -389,3 +389,8 @@ order by p.created_at;
 **Publier un tarif** : renseigner `monthlyPrice` de l'offre dans `src/domain/plans.ts`. Tant qu'il est vide, la page
 d'accueil affiche « Tarif annoncé prochainement ».
 
+## 12. Modes de coaching (0.9.0)
+
+Rien à installer ni à régler : la migration `20261119090000_modes_coaching.sql` et la fonction `garmin-sync` sont
+déployées par la tâche de l'étape 4. Tous les athlètes restent en mode **strict** ; le coach passe un athlète en
+mode **souple** depuis sa fiche (onglet Planning › Mode de coaching).

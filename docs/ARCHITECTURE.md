@@ -34,7 +34,7 @@ chaque requête est faite au nom de l'utilisateur connecté, et les règles RLS
 | Table / vue | Rôle |
 |---|---|
 | `profiles` | Un profil par compte : nom, e-mail, rôle (`coach` ou `athlete`), accord donné (`terms_version`, `terms_accepted_at`) |
-| `coach_athletes` | Lien coach ↔ athlète, statut `active` / `archived` |
+| `coach_athletes` | Lien coach ↔ athlète, statut `active` / `archived`, mode de coaching `strict` / `flexible` (0.9.0) |
 | `coach_subscriptions` (0.8.0) | Offre de chaque coach (`decouverte`, `solo`, `pro`, `club`, `fondateur`) : fixe le nombre d'athlètes actifs |
 | `invitations` | Liens d'invitation : jeton aléatoire de 244 bits, usage unique, valable 14 jours |
 | `athlete_profiles` | Fiche athlète : objectifs, blessures, disponibilités, physiologie, zones (JSON) |
@@ -42,6 +42,8 @@ chaque requête est faite au nom de l'utilisateur connecté, et les règles RLS
 | `coach_private_notes` | Notes du coach sur un athlète |
 | `coach_links` (vue) | Liens avec les noms des deux parties, filtrés par la RLS |
 | `workouts` (0.2.0) | Séances planifiées : athlète, coach, date, ordre dans la journée, type, titre, consignes, étapes (JSON) |
+| `weekly_targets` (0.9.0) | Mode souple : volume de la semaine fixé par le coach (fourchette `km_min` – `km_max`, consigne), une ligne par athlète et par lundi |
+| `athlete_runs` (0.9.0) | Mode souple : sorties déclarées à la main par l'athlète (jour, distance, durée) |
 | `workout_templates` (0.2.0) | Bibliothèque de séances types, propre à chaque coach |
 | `races` (0.2.0) | Courses et objectifs de l'athlète : date, distance, D+, priorité A/B/C |
 | `workout_feedback` (0.3.0) | Retour de séance (un par séance) : faite ou non, durée, distance, D+, RPE, douleurs (JSON), « vu par le coach » |
@@ -90,7 +92,11 @@ quand le coach les met à jour. La base vérifie ce format (`workout_steps_are_v
 | Rôle (`coach` / `athlete`) | ne peut pas le changer | ne peut pas le changer | choisi à l'inscription |
 | Son offre | lit, ne la change pas | — | — |
 | Séances de ses athlètes / les siennes | lit, crée, modifie, supprime | lit seulement | — |
+| Jour d'une séance « à faire dans la semaine » | peut l'imposer | le choisit (`place_flexible_workout`) | — |
 | Séances des autres athlètes | **jamais** | **jamais** | — |
+| Mode de coaching | le choisit | le lit | — |
+| Volume de la semaine | lit, fixe, retire | lit seulement | — |
+| Sorties déclarées | lit seulement | lit, ajoute, modifie, supprime | — |
 | Séances types (bibliothèque) | les siennes : tout | **jamais** | — |
 | Courses et objectifs | lit, crée, modifie, supprime | lit, crée, modifie, supprime | — |
 | Retour de séance | lit, marque « vu » | lit, crée, modifie, supprime le sien | — |
@@ -104,7 +110,8 @@ quand le coach les met à jour. La base vérifie ce format (`workout_steps_are_v
 | Journal des erreurs du site | **jamais** | **jamais** | — |
 
 Ces règles sont vérifiées automatiquement par `tests/db/socle.test.ts`, `tests/db/planification.test.ts`,
-`tests/db/echanges.test.ts`, `tests/db/garmin.test.ts`, `tests/db/comptes.test.ts` et `tests/db/offres.test.ts`. Un message ou un commentaire ne se modifie pas ; « lu » et « vu par le coach » ne
+`tests/db/echanges.test.ts`, `tests/db/garmin.test.ts`, `tests/db/comptes.test.ts`, `tests/db/offres.test.ts` et
+`tests/db/modes.test.ts`. Un message ou un commentaire ne se modifie pas ; « lu » et « vu par le coach » ne
 s'écrivent qu'au travers de `mark_conversation_read` et `mark_workout_seen`.
 
 Une séance ne change jamais d'athlète : la copier vers un autre athlète crée une nouvelle séance.
@@ -136,6 +143,27 @@ Une séance ne change jamais d'athlète : la copier vers un autre athlète crée
   actif au-delà de la limite, que ce soit par une invitation ou par une réactivation. `get_invitation` renvoie
   `full` pour prévenir l'athlète avant l'inscription.
 - L'offre ne s'écrit pas depuis le site : `set_coach_plan` (SQL Editor) aujourd'hui, le paiement en ligne demain.
+
+## Modes de coaching (0.9.0)
+
+Le mode est porté par le lien `coach_athletes.mode` : un coach peut suivre un athlète en strict et un autre en souple.
+
+- **Strict** : rien ne change, chaque séance a sa date.
+- **Souple** : trois éléments s'ajoutent.
+  - `weekly_targets` : la fourchette de kilomètres de la semaine (clé : athlète + lundi).
+  - `workouts.flexible` : séance « à faire dans la semaine ». Tant que l'athlète n'a pas choisi son jour
+    (`placed_at` vide), le déclencheur `workouts_keep_placement` la range au **lundi** de sa semaine. L'athlète
+    choisit son jour avec `place_flexible_workout` (dans la même semaine seulement) ; il n'a toujours aucun droit
+    d'écriture sur `workouts`. Si le coach déplace la séance vers une autre semaine ou la repasse en jour fixe, le
+    choix de l'athlète est oublié.
+  - `athlete_runs` : les sorties que l'athlète déclare à la main.
+- **Bilan de la semaine** : `weekSummary` (`src/domain/flexible.ts`) additionne les activités de course de la montre,
+  les sorties déclarées et la distance des retours de séance, sans compter deux fois une sortie (une séance suivie
+  par la montre, ou faite le jour d'une activité de course, ne rajoute pas la distance de son retour). Il en tire
+  les kilomètres restants (minimum et maximum de la fourchette) et l'état de chaque séance souple.
+- Une séance souple sans jour choisi n'a pas de vraie date : elle est écartée de « Ta séance du jour », de l'e-mail
+  de la veille et du rapprochement avec les activités Garmin.
+- Écrans : `src/components/flexible/` (`CoachWeekPanel`, `AthleteWeekCard`, `VolumeGauge`).
 
 ## Sécurité du navigateur et suivi des erreurs (0.7.0)
 

@@ -9,7 +9,7 @@ import { ActivityDetailView } from '../components/activity/ActivityDetailView.ts
 import { WorkoutExchanges } from '../components/exchanges/WorkoutExchanges.tsx'
 import { Alert, Card, EmptyState, LoadingBlock, PageHeader } from '../components/ui.tsx'
 import { FitExport, WorkoutView } from '../components/workout/WorkoutView.tsx'
-import { formatLongDay } from '../domain/calendar.ts'
+import { workoutDayLabel } from '../domain/flexible.ts'
 import { errorMessage } from '../lib/errors.ts'
 
 /**
@@ -73,7 +73,7 @@ export function WorkoutPage() {
       <PageHeader
         back={back}
         title={w.title}
-        subtitle={[formatLongDay(w.scheduled_on), role === 'coach' ? athleteName : null].filter(Boolean).join(' · ')}
+        subtitle={[workoutDayLabel(w), role === 'coach' ? athleteName : null].filter(Boolean).join(' · ')}
       />
       {garmin.data ? (
         <div className="space-y-6">

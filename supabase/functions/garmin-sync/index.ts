@@ -43,6 +43,8 @@ Deno.serve(async (request: Request) => {
         .from('workouts')
         .select('id, scheduled_on, kind, position')
         .eq('athlete_id', athleteId)
+        // Une séance souple sans jour choisi est rangée au lundi : ce n'est pas sa date, on ne la rapproche pas.
+        .or('flexible.eq.false,placed_at.not.is.null')
         .gte('scheduled_on', from)
         .lte('scheduled_on', to)
       if (error) throw error

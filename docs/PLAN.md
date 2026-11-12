@@ -89,6 +89,19 @@ Le coach peut résilier Nolio à partir de cette version.
 - Volumes par semaine (km, heures, D+) et courbe forme/fatigue.
 - Tableau de bord du coach avec des alertes : séance manquée, RPE anormal, douleur signalée, hausse brutale de la charge.
 
+### 0.7.0 à 0.9.0 : la plateforme (fait)
+
+- 0.7.0 : page d'accueil publique, pages légales, accord explicite, export et suppression du compte.
+- 0.8.0 : inscription des coachs, offres selon le nombre d'athlètes (gratuit jusqu'à 3).
+- 0.9.0 : deux modes de coaching par athlète, **strict** (jours imposés) et **souple** (fourchette de kilomètres et
+  séances à placer dans la semaine par l'athlète).
+
+### Ensuite
+
+- Paiement en ligne des offres (Stripe), une fois la structure juridique créée.
+- Applications Android et iOS : le même code, emballé avec Capacitor ; l'app iOS ouvre aussi l'accès à Apple Santé.
+- Liaison directe avec les montres : Garmin d'abord (demande en cours), puis Polar, Suunto, COROS et Wahoo.
+
 ## Garmin : le point bloquant
 
 Garmin a rouvert son programme développeur le 21 octobre 2026, avec trois niveaux.

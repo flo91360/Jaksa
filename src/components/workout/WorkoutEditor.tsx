@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from 'react'
 import { useCreateWorkouts, useDeleteWorkout, useSaveTemplate, useTemplates, useUpdateWorkout } from '../../api/planning.ts'
-import { type IsoDate, formatLongDay, isIsoDate } from '../../domain/calendar.ts'
+import { type IsoDate, formatLongDay, formatWeekRange, isIsoDate } from '../../domain/calendar.ts'
+import type { CoachingMode } from '../../domain/flexible.ts'
 import { type WorkoutContent, copyWorkout, nextPosition } from '../../domain/planning.ts'
 import {
   WORKOUT_KINDS,
@@ -20,7 +21,7 @@ import { StepBuilder } from './StepBuilder.tsx'
 import { type EditableItem, fromEditable, toEditable } from './editable.ts'
 import { FitExport } from './WorkoutView.tsx'
 
-export type AthleteOption = { id: string; name: string; zones: HrZone[] }
+export type AthleteOption = { id: string; name: string; zones: HrZone[]; mode?: CoachingMode }
 
 const EMPTY_CONTENT: WorkoutContent = { kind: 'run', title: '', description: '', steps: [] }
 
@@ -110,7 +111,7 @@ export function WorkoutEditor({
   onClose,
 }: {
   workout?: Workout
-  initial?: { athleteId?: string; date: IsoDate; content?: WorkoutContent }
+  initial?: { athleteId?: string; date: IsoDate; content?: WorkoutContent; flexible?: boolean }
   athletes: AthleteOption[]
   existing: Workout[]
   /** Retour et commentaires de la séance : ouvre directement cet onglet s'il y a du nouveau. */
@@ -125,6 +126,7 @@ export function WorkoutEditor({
   const state = useContentState(workout ?? initial?.content ?? EMPTY_CONTENT)
   const [athleteId, setAthleteId] = useState(workout?.athlete_id ?? initial?.athleteId ?? athletes[0]?.id ?? '')
   const [date, setDate] = useState<IsoDate>(workout?.scheduled_on ?? initial?.date ?? '')
+  const [flexibleChoice, setFlexibleChoice] = useState(workout?.flexible ?? initial?.flexible ?? false)
   const [formError, setFormError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [copying, setCopying] = useState(false)
@@ -137,6 +139,9 @@ export function WorkoutEditor({
 
   const athlete = athletes.find((a) => a.id === athleteId)
   const zones = athlete?.zones ?? []
+  // « À faire dans la semaine » : proposé pour un athlète suivi en mode souple (ou une séance déjà souple).
+  const canBeFlexible = athlete?.mode === 'flexible' || workout?.flexible === true
+  const flexible = canBeFlexible && flexibleChoice
   const busy = create.isPending || update.isPending || remove.isPending
 
   const submit = async (event: FormEvent) => {
@@ -150,11 +155,11 @@ export function WorkoutEditor({
         const moved = date !== workout.scheduled_on
         await update.mutateAsync({
           id: workout.id,
-          patch: { ...content, scheduled_on: date, ...(moved ? { position: nextPosition(existing, athleteId, date) } : {}) },
+          patch: { ...content, scheduled_on: date, flexible, ...(moved ? { position: nextPosition(existing, athleteId, date) } : {}) },
         })
       } else {
         await create.mutateAsync([
-          { ...content, athlete_id: athleteId, scheduled_on: date, position: nextPosition(existing, athleteId, date) },
+          { ...content, athlete_id: athleteId, scheduled_on: date, position: nextPosition(existing, athleteId, date), flexible },
         ])
       }
       onClose()
@@ -286,14 +291,32 @@ export function WorkoutEditor({
             </SelectField>
           )}
           <TextField
-            label="Date"
+            label={flexible ? 'Un jour de la semaine voulue' : 'Date'}
             type="date"
             value={date}
             required
             onChange={(event) => setDate(event.target.value)}
-            hint={isIsoDate(date) ? formatLongDay(date) : undefined}
+            hint={isIsoDate(date) ? (flexible ? `Semaine du ${formatWeekRange(date)}` : formatLongDay(date)) : undefined}
           />
         </div>
+
+        {canBeFlexible && (
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 px-3 py-2.5">
+            <input
+              type="checkbox"
+              checked={flexibleChoice}
+              onChange={(event) => setFlexibleChoice(event.target.checked)}
+              className="mt-0.5 size-5 shrink-0 accent-emerald-700"
+            />
+            <span className="text-sm text-slate-800">
+              <span className="font-semibold">À faire dans la semaine</span>
+              <span className="block text-slate-600">
+                {athlete?.name ?? 'L’athlète'} choisit son jour. Décoche pour imposer la date.
+                {workout?.flexible && workout.placed_at ? ' Jour déjà choisi par l’athlète : il est conservé tant que la séance reste dans cette semaine.' : ''}
+              </span>
+            </span>
+          </label>
+        )}
 
         <ContentFields
           state={state}

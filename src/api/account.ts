@@ -75,6 +75,10 @@ export async function exportAccountData(userId: string, role: UserRole): Promise
   data.messages = await readAll((from, to) =>
     supabase.from('messages').select('*').eq(me, userId).order('created_at').order('id').range(from, to),
   )
+  // Mode souple (0.9.0) : volumes fixés par le coach, sorties déclarées par l'athlète.
+  data.volumes_hebdomadaires = await readAll((from, to) =>
+    supabase.from('weekly_targets').select('*').eq(me, userId).order('week_start').order('athlete_id').range(from, to),
+  )
 
   if (role === 'coach') {
     data.seances_types = await readAll((from, to) =>
@@ -104,6 +108,9 @@ export async function exportAccountData(userId: string, role: UserRole): Promise
     )
     data.commentaires = await readAll((from, to) =>
       supabase.from('workout_comments').select('*').eq('athlete_id', userId).order('created_at').order('id').range(from, to),
+    )
+    data.sorties_declarees = await readAll((from, to) =>
+      supabase.from('athlete_runs').select('*').eq('athlete_id', userId).order('run_on').order('id').range(from, to),
     )
     data.activites_montre = await readAll((from, to) =>
       supabase.from('garmin_activities').select('*').eq('athlete_id', userId).order('start_time').order('id').range(from, to),
