@@ -1,5 +1,9 @@
 # Journal des versions
 
+## [0.11.0] - 2026-11-13
+
+Nouveau logo pour Jaksa : un « j » en forme de trajectoire qui monte vers un point jaune, avec deux traits de vitesse. Il remplace l'ancien dans l'en-tête, les pages de connexion et d'invitation, l'onglet du navigateur et l'icône de l'appli installée sur le téléphone.
+
 ## [0.10.0] - 2026-11-13
 
 Rob1Coach devient **Jaksa**, du finnois *jaksaa* : « avoir la force de continuer ». Les Finlandais, peuple de coureurs de fond, se le disent pour s'encourager à tenir.
