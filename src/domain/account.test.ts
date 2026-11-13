@@ -16,11 +16,11 @@ describe('confirmsDeletion', () => {
 
 describe('exportFileName', () => {
   it('donne un nom de fichier sans accent ni espace', () => {
-    expect(exportFileName('Léa Martin-Dupré', '2026-11-12')).toBe('rob1coach-lea-martin-dupre-2026-11-12.json')
+    expect(exportFileName('Léa Martin-Dupré', '2026-11-12')).toBe('jaksa-lea-martin-dupre-2026-11-12.json')
   })
 
   it('reste lisible sans nom', () => {
-    expect(exportFileName('  ', '2026-11-12')).toBe('rob1coach-mes-donnees-2026-11-12.json')
+    expect(exportFileName('  ', '2026-11-12')).toBe('jaksa-mes-donnees-2026-11-12.json')
   })
 })
 
@@ -30,7 +30,7 @@ describe('buildExport', () => {
     expect(file.exported_at).toBe('2026-11-12T08:00:00.000Z')
     expect(file.app_version).toBe('0.7.0')
     expect(file.data).toEqual({ profil: { full_name: 'Léa' }, seances: [] })
-    expect(file.about).toContain('Rob1Coach')
+    expect(file.about).toContain('Jaksa')
   })
 })
 

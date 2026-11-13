@@ -56,7 +56,7 @@ export function InvitationPage() {
 
   return (
     <AuthLayout
-      title={`${invitation.coach_name || 'Ton coach'} t’invite sur Rob1Coach`}
+      title={`${invitation.coach_name || 'Ton coach'} t’invite sur Jaksa`}
       subtitle="Tu y retrouveras tes séances, tes zones d’entraînement et les échanges avec ton coach."
     >
       {session && !joining ? (

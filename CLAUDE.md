@@ -1,4 +1,4 @@
-# Rob1Coach — consignes pour Claude
+# Jaksa — consignes pour Claude
 
 Application web de suivi de coureurs par leur coach. Voir README.md,
 docs/PLAN.md (feuille de route) et docs/ARCHITECTURE.md. Textes de

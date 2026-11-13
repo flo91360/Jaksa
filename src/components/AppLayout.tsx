@@ -52,7 +52,7 @@ export function AppLayout() {
         <div className={`mx-auto flex h-14 ${width} items-center justify-between gap-4 px-4`}>
           <NavLink to="/" className="flex items-center gap-2 font-bold tracking-tight text-slate-900">
             <img src="/favicon.svg" alt="" className="size-8" />
-            Rob1Coach
+            Jaksa
           </NavLink>
           <nav aria-label="Navigation principale" className="hidden items-center gap-1 md:flex">
             {items.map((item) => (

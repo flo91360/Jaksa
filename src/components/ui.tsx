@@ -291,7 +291,7 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
       <div className="w-full max-w-md">
         <Link to="/" className="mb-6 flex items-center justify-center gap-2">
           <img src="/favicon.svg" alt="" className="size-10" />
-          <span className="text-2xl font-bold tracking-tight text-slate-900">Rob1Coach</span>
+          <span className="text-2xl font-bold tracking-tight text-slate-900">Jaksa</span>
         </Link>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <h1 className="text-xl font-bold text-slate-900">{title}</h1>

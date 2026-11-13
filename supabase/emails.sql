@@ -1,12 +1,12 @@
 -- =============================================================================
--- Rob1Coach — activation des e-mails (à exécuter UNE fois, après la migration
+-- Jaksa — activation des e-mails (à exécuter UNE fois, après la migration
 -- 20261110090000_echanges.sql). Ce n'est pas une migration : ce fichier
 -- contient des secrets à remplir, il ne doit pas être enregistré une fois rempli.
 --
 -- Avant de l'exécuter, remplacer les trois valeurs entre crochets :
 --   [CLE_API_BREVO]   : Brevo → SMTP & API → onglet « API Keys » → Generate (xkeysib-…)
 --   [ADRESSE_EXPEDITEUR] : une adresse validée dans Brevo → Senders (ex. coach@mondomaine.fr)
---   [ADRESSE_DU_SITE] : l'adresse du site, sans « / » final (ex. https://rob1coach.fr)
+--   [ADRESSE_DU_SITE] : l'adresse du site, sans « / » final (ex. https://jaksa.fr)
 --
 -- Voir docs/DEPLOIEMENT.md, étape 7.
 -- =============================================================================

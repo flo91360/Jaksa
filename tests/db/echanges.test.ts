@@ -425,7 +425,7 @@ describe('e-mails', () => {
         .then((r) => r.rows)
 
     const [digest] = await digests()
-    expect(digest.subject).toBe('3 nouveautés sur Rob1Coach')
+    expect(digest.subject).toBe('3 nouveautés sur Jaksa')
     expect(digest.item_ids).toHaveLength(3)
     expect(digest.html).toContain('Bonjour Léa')
     expect(digest.html).toContain(`https://rob1coach.fr/seance/${workoutId}`)

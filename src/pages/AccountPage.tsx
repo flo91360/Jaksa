@@ -297,7 +297,7 @@ function EmailPreference({ profile }: { profile: Profile }) {
           onChange={(event) => update.mutate(event.target.checked)}
         />
         <span className="text-sm text-slate-800">
-          <span className="block font-medium">Recevoir les e-mails de Rob1Coach</span>
+          <span className="block font-medium">Recevoir les e-mails de Jaksa</span>
           <span className="text-slate-600">
             {coach
               ? 'Un e-mail quand un athlète fait son retour, commente une séance ou t’écrit (regroupés, et seulement si tu ne les as pas déjà lus sur le site).'

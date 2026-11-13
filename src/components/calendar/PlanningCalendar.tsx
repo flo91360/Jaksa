@@ -46,7 +46,7 @@ type Props = {
 }
 
 const WEEKDAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
-const DRAG_TYPE = 'application/x-rob1coach-workout'
+const DRAG_TYPE = 'application/x-jaksa-workout'
 
 export function PlanningCalendar(props: Props) {
   const [dragOver, setDragOver] = useState<string | null>(null)

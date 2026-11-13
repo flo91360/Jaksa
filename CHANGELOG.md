@@ -1,5 +1,12 @@
 # Journal des versions
 
+## [0.10.0] - 2026-11-13
+
+Rob1Coach devient **Jaksa**, du finnois *jaksaa* : « avoir la force de continuer ». Les Finlandais, peuple de coureurs de fond, se le disent pour s'encourager à tenir.
+
+- Le nouveau nom apparaît partout : en-tête, page d'accueil, liens d'invitation, partage, application installée sur le téléphone, fichier « Télécharger mes données » et e-mails (objet, pied de page et expéditeur).
+- Rien ne change pour les utilisateurs : ils restent connectés et gardent leur thème clair ou sombre.
+
 ## [0.9.0] - 2026-11-13
 
 Deux modes de coaching, au choix du coach pour chaque athlète (fiche de l'athlète › Planning › **Mode de coaching**).
