@@ -9,8 +9,8 @@ export function InvitationLink({ token, athleteName }: { token: string; athleteN
   const url = appUrl(invitationPath(token))
   const [copied, setCopied] = useState(false)
   const message = athleteName
-    ? `${athleteName}, voici ton lien pour rejoindre ton coach sur Rob1Coach :`
-    : 'Voici ton lien pour rejoindre ton coach sur Rob1Coach :'
+    ? `${athleteName}, voici ton lien pour rejoindre ton coach sur Jaksa :`
+    : 'Voici ton lien pour rejoindre ton coach sur Jaksa :'
 
   return (
     <div className="space-y-2">

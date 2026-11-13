@@ -1,4 +1,4 @@
-# Architecture de Rob1Coach
+# Architecture de Jaksa
 
 ## Vue d'ensemble
 

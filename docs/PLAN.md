@@ -1,4 +1,4 @@
-# Plan de Rob1Coach
+# Plan de Jaksa
 
 Objectif : remplacer Nolio par un outil plus simple et bien moins cher, taillé
 pour la façon de travailler du coach. Le plan a été établi le 8 novembre 2026.
@@ -114,7 +114,7 @@ les tarifs et plafonds viennent de la presse.
   jetons depuis son compte sur connect.garmin.com. Pas d'API Training, donc pas d'envoi
   sur la montre. Il ne convient pas à un coach, mais il suffit pour le test perso de
   la 0.4.0. Les jetons vont dans les secrets Supabase, jamais dans le code.
-- **Starter** : réservé aux entreprises. D'après la presse, il est gratuit et plafonné à environ 1 000 utilisateurs. Les données arrivent par envoi automatique de Garmin, sans l'historique. C'est le bon niveau pour Rob1Coach.
+- **Starter** : réservé aux entreprises. D'après la presse, il est gratuit et plafonné à environ 1 000 utilisateurs. Les données arrivent par envoi automatique de Garmin, sans l'historique. C'est le bon niveau pour Jaksa.
 - **Enterprise** : payant, avec un tarif négocié.
 
 L'envoi des séances sur la montre (Training API) n'est pas ouvert au niveau

@@ -16,7 +16,7 @@ export const APP_VERSION: string = typeof __APP_VERSION__ === 'string' ? __APP_V
 export const TERMS_VERSION = '2026-11-12'
 
 export const SITE = {
-  name: 'Rob1Coach',
+  name: 'Jaksa',
   tagline: 'Planification et suivi de l’entraînement des coureurs par leur coach.',
   /** Adresse de contact (support et données personnelles). */
   contactEmail: (import.meta.env.VITE_CONTACT_EMAIL ?? '').trim(),

@@ -63,10 +63,10 @@ jobs:
             --file="$dir/auth.sql"
           tar -C "$dir" -czf - public.sql auth.sql \
             | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 3 --symmetric --cipher-algo AES256 \
-                --output "rob1coach-$stamp.tar.gz.gpg" 3<<<"$BACKUP_PASSPHRASE"
+                --output "jaksa-$stamp.tar.gz.gpg" 3<<<"$BACKUP_PASSPHRASE"
           rm -rf "$dir"
-          ls -lh "rob1coach-$stamp.tar.gz.gpg"
-          echo "FICHIER=rob1coach-$stamp.tar.gz.gpg" >> "$GITHUB_ENV"
+          ls -lh "jaksa-$stamp.tar.gz.gpg"
+          echo "FICHIER=jaksa-$stamp.tar.gz.gpg" >> "$GITHUB_ENV"
 
       - name: Conserver 30 jours
         if: steps.config.outputs.pret == 'oui'

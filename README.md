@@ -1,4 +1,4 @@
-# Rob1Coach
+# Jaksa
 
 Application web pour un coach de course à pied et ses athlètes (semi, marathon,
 ultra-trail, reprise après blessure). Elle remplace l'essentiel de Nolio, pour un

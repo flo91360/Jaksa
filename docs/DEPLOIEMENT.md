@@ -1,4 +1,4 @@
-# Mise en ligne de Rob1Coach
+# Mise en ligne de Jaksa
 
 Il faut deux comptes gratuits :
 
@@ -174,7 +174,7 @@ Tant que les deux secrets ci-dessous manquent, la tâche s'arrête avec un simpl
 3. Sur GitHub : **Settings** → **Secrets and variables** → **Actions** → **New repository secret** :
    - `BACKUP_PASSPHRASE` : la phrase secrète.
 4. **Actions** → **Sauvegarde de la base** → **Run workflow** pour un premier essai : un fichier
-   `rob1coach-AAAA-MM-JJ.tar.gz.gpg` doit apparaître dans les artefacts.
+   `jaksa-AAAA-MM-JJ.tar.gz.gpg` doit apparaître dans les artefacts.
 
 L'offre gratuite de GitHub (2 000 minutes par mois pour un dépôt privé) suffit largement : la tâche prend une à deux minutes.
 
@@ -185,7 +185,7 @@ L'offre gratuite de GitHub (2 000 minutes par mois pour un dépôt privé) suffi
 1. Télécharger l'artefact voulu depuis GitHub, puis le déchiffrer :
 
    ```bash
-   gpg --decrypt rob1coach-AAAA-MM-JJ.tar.gz.gpg | tar -xzf -   # demande la phrase secrète
+   gpg --decrypt jaksa-AAAA-MM-JJ.tar.gz.gpg | tar -xzf -   # demande la phrase secrète
    ```
 
 2. Créer la structure : mettre la chaîne Session pooler du nouveau projet dans le secret `SUPABASE_DB_URL` et lancer
@@ -232,7 +232,7 @@ lendemain, nouveaux retours, commentaires et messages). Pour qu'ils partent vrai
    (**New query**), puis remplacer les trois valeurs entre crochets :
    - `[CLE_API_BREVO]` : la clé copiée ;
    - `[ADRESSE_EXPEDITEUR]` : l'adresse validée dans Brevo ;
-   - `[ADRESSE_DU_SITE]` : l'adresse du site, sans « / » final (ex. `https://rob1coach.fr`).
+   - `[ADRESSE_DU_SITE]` : l'adresse du site, sans « / » final (ex. `https://jaksa.fr`).
 3. **Run**. La requête ne doit être exécutée qu'**une fois**. Ne pas enregistrer la requête remplie (elle contient la clé).
 4. Pour vérifier le lendemain : **Integrations** → **Cron** → les deux tâches `rob1coach-…` et leurs dernières exécutions.
 
@@ -254,7 +254,7 @@ Compter 15 minutes.
    jeton d'accès de 24 h à chaque import.
 2. **Ranger la clé dans Supabase** : **Edge Functions** → **Secrets** → ajouter deux secrets :
    - `GARMIN_PERSONAL_API_KEY` : la clé Garmin ;
-   - `GARMIN_ATHLETE_EMAIL` : l'adresse e-mail du compte **athlète** Rob1Coach qui recevra ces activités. La
+   - `GARMIN_ATHLETE_EMAIL` : l'adresse e-mail du compte **athlète** Jaksa qui recevra ces activités. La
      fonction refuse tout autre compte, coach compris.
 3. **Déployer les fonctions** `garmin-import` (import à la demande) et `garmin-sync` (import automatique toutes les
    15 minutes, avec sa tâche `pg_cron` `rob1coach-garmin-import`) : c'est automatique (étape 4). Pour la redéployer sans attendre une

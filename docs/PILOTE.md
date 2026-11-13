@@ -1,6 +1,6 @@
 # Pilote de la 0.3.0
 
-But : utiliser Rob1Coach pour de vrai avec 2 ou 3 athlètes pendant 3 à 4 semaines, **en parallèle de Nolio**,
+But : utiliser Jaksa pour de vrai avec 2 ou 3 athlètes pendant 3 à 4 semaines, **en parallèle de Nolio**,
 avant de basculer tout le monde (0.4.0, avec Garmin).
 
 ## Avant de commencer
@@ -12,8 +12,8 @@ avant de basculer tout le monde (0.4.0, avec Garmin).
 
 ## Pendant le pilote
 
-- Le coach planifie dans Rob1Coach **et** dans Nolio (Nolio reste la référence pour l'envoi sur la montre ; sinon, export `.FIT`).
-- Les athlètes pilotes font leur retour et échangent dans Rob1Coach seulement.
+- Le coach planifie dans Jaksa **et** dans Nolio (Nolio reste la référence pour l'envoi sur la montre ; sinon, export `.FIT`).
+- Les athlètes pilotes font leur retour et échangent dans Jaksa seulement.
 - Chaque semaine, noter dans une issue GitHub (ou envoyer à Claude) :
   - ce qui manque par rapport à Nolio ;
   - ce qui est plus lent ou moins clair ;
